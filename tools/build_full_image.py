@@ -15,15 +15,17 @@ def build():
  runtime()
  image=ROOT/'dist/full-image';clean(image)
  native=ROOT/'.validation/omni-installer/native'
- if not (native/'yasb.exe').exists():
-  msi=ROOT/'.validation/omni-installer/deps/yasb-2.0.7-x64.msi'
-  expected=read(ROOT/'distribution/runtime-base.json')['native_msi_sha256']
-  if not msi.exists():
-   import urllib.request
-   msi.parent.mkdir(parents=True,exist_ok=True);urllib.request.urlretrieve('https://github.com/amnweb/yasb/releases/download/v2.0.7/yasb-2.0.7-x64.msi',msi)
-  if sha(msi)!=expected:raise ValueError('Upstream native runtime checksum mismatch')
-  from native_archive import extract
-  extract(msi,native)
+ msi=ROOT/'.validation/omni-installer/deps/yasb-2.0.7-x64.msi'
+ expected=read(ROOT/'distribution/runtime-base.json')['native_msi_sha256']
+ if not msi.exists():
+  import urllib.request
+  msi.parent.mkdir(parents=True,exist_ok=True);urllib.request.urlretrieve('https://github.com/amnweb/yasb/releases/download/v2.0.7/yasb-2.0.7-x64.msi',msi)
+ if sha(msi)!=expected:raise ValueError('Upstream native runtime checksum mismatch')
+ if not native.resolve().is_relative_to((ROOT/'.validation/omni-installer').resolve()) or native.is_symlink() or native.is_junction():raise ValueError('Unsafe native cache')
+ # Re-extract every build: a mutable local cache cannot establish provenance.
+ if native.exists():shutil.rmtree(native)
+ from native_archive import extract
+ extract(msi,native)
  shutil.copytree(native,image/'.runtime/yasb-2.0.7')
  (image/'.runtime/yasb-2.0.7/lib/library.zip').write_bytes(sanitized_library(ROOT/'distribution/runtime-overlay.zip'))
  files=sources(ROOT);privacy(files)

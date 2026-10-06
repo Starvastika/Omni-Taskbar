@@ -22,6 +22,13 @@ def validate():
   with zipfile.ZipFile(wheel) as z:
    for item in z.infolist():
     if item.filename.endswith(('.pyd','.dll')):public_binaries['runtime/python/site-packages/'+item.filename]=hashlib.sha256(z.read(item)).hexdigest()
+ native=ROOT/'.validation/omni-installer/native'
+ msi=cache/'yasb-2.0.7-x64.msi'
+ if sha(msi)!=json.loads((ROOT/'distribution/runtime-base.json').read_text('utf-8'))['native_msi_sha256']:raise ValueError('Unverified upstream YASB')
+ for binary in native.rglob('*'):
+  if binary.is_file() and binary.suffix.lower() in ('.pyd','.dll','.exe'):
+   public_binaries['.runtime/yasb-2.0.7/'+binary.relative_to(native).as_posix()]=sha(binary)
+   if binary.parent==native and binary.name.startswith(('vcruntime','msvcp','concrt')):public_binaries['runtime/python/'+binary.name]=sha(binary)
  image=ROOT/'dist/full-image';inventory=json.loads((image/'installation-files.json').read_text())
  expected=set(inventory['files'])|{'installation-files.json'};actual={p.relative_to(image).as_posix() for p in image.rglob('*') if p.is_file()}
  if expected!=actual:raise ValueError('Full image contains unlisted files')
