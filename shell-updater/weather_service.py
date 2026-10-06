@@ -1,10 +1,12 @@
 """Event-driven reader of Weather Center's authoritative state and derived data."""
-import copy,hashlib,json,os,time
+import copy,hashlib,json,os,time,sys
 from pathlib import Path
 from PyQt6.QtCore import QObject,QFileSystemWatcher,QTimer,QProcess,pyqtSignal
 from PyQt6.QtNetwork import QLocalSocket
 
-ROOT=Path.home()/'.config/yasb'
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from omni_layout import program_root,user_root,runtime_python
+ROOT=program_root()
 def identity(location):
  return tuple((location or {}).get(key) for key in ('id','lat','lon','zone'))
 class SharedWeather(QObject):
@@ -15,7 +17,7 @@ class SharedWeather(QObject):
   if cls._instance is None:cls._instance=cls()
   return cls._instance
  def __init__(self,root=ROOT,parent=None):
-  super().__init__(parent);self.root=Path(root);self.folder=self.root/'weather-center/data';self.folder.mkdir(parents=True,exist_ok=True)
+  super().__init__(parent);self.root=Path(root);self.folder=user_root(self.root)/'weather-center/data';self.folder.mkdir(parents=True,exist_ok=True)
   self.snapshot={};self.digest='';self.watcher=QFileSystemWatcher([str(self.folder)],self)
   self.watcher.directoryChanged.connect(self.schedule)
   self.timer=QTimer(self);self.timer.setSingleShot(True);self.timer.setInterval(40);self.timer.timeout.connect(self.read)
@@ -46,8 +48,8 @@ class SharedWeather(QObject):
    if done[0]:return
    done[0]=True;socket.abort();cleanup()
    try:
-    cfg=json.loads((root/'runtime.json').read_text('utf-8'))
-    QProcess.startDetached(cfg['python'],[str(root/'app/main.py'),'--locations' if locations else '--toggle'],str(root))
+    python=runtime_python(self.root).with_name('pythonw.exe')
+    QProcess.startDetached(str(python),[str(root/'app/main.py'),'--locations' if locations else '--toggle'],str(root))
    except (OSError,ValueError,KeyError):pass
   def connected():
    if done[0]:return

@@ -1,0 +1,12 @@
+{
+  "python": {
+    "version": "3.14.7",
+    "url": "https://www.python.org/ftp/python/3.14.7/python-3.14.7-embed-amd64.zip",
+    "sha256": "d297e5ff019966817ad8502465176139f2d3d840fa4ed84b13bed399a6ab1f15"
+  },
+  "inno": {
+    "version": "6.7.3",
+    "url": "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe",
+    "sha256": "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732"
+  }
+}

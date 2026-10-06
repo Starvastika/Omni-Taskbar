@@ -3,9 +3,13 @@ import json,sys,time,os
 from pathlib import Path
 from PyQt6.QtCore import QObject,QFileSystemWatcher,QTimer,QProcess,pyqtSignal
 
-ROOT=Path.home()/'.config/yasb'
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from omni_layout import program_root,user_root,runtime_python
+ROOT=program_root()
 def interpreter(root):
- try:value=json.loads((Path(root)/'helpers/runtime-settings.json').read_text('utf-8')).get('python')
+ bundled=Path(root)/'runtime/python/pythonw.exe'
+ if bundled.exists():return str(bundled)
+ try:value=json.loads((user_root(root)/'helpers/runtime-settings.json').read_text('utf-8')).get('python')
  except (OSError,ValueError):value=None
  result=Path(value) if value else Path.home()/'AppData/Local/Python/pythoncore-3.14-64/pythonw.exe'
  return str(result.with_name('pythonw.exe') if result.name.casefold()=='python.exe' else result)
@@ -17,7 +21,7 @@ class UpdateService(QObject):
   if cls._instance is None:cls._instance=cls()
   return cls._instance
  def __init__(self,root=ROOT,parent=None,startup=True):
-  super().__init__(parent);self.root=Path(root);self.folder=self.root/'shell-updater/data';self.folder.mkdir(parents=True,exist_ok=True)
+  super().__init__(parent);self.root=Path(root);self.folder=user_root(self.root)/'shell-updater/data';self.folder.mkdir(parents=True,exist_ok=True)
   self.state={};self.job=None;self.pending=None;self.watcher=QFileSystemWatcher([str(self.folder)],self)
   self.debounce=QTimer(self);self.debounce.setSingleShot(True);self.debounce.setInterval(50);self.debounce.timeout.connect(self.read)
   self.watcher.directoryChanged.connect(lambda *_:self.debounce.start())
@@ -50,7 +54,7 @@ class UpdateService(QObject):
   if mode:args+=['--mode',mode]
   if detached:
    ok,pid=QProcess.startDetached(interpreter(self.root),args,str(self.root))
-   if ok:self.state.update(busy=True,status='Starting update…');self.changed.emit()
+   if ok:self.state.update(busy=True,status='Starting updateÃ¢â‚¬Â¦');self.changed.emit()
    return ok
   process=QProcess(self);self.job=process;process.setProgram(interpreter(self.root));process.setArguments(args)
   self.job_action=action
@@ -58,13 +62,17 @@ class UpdateService(QObject):
   self.deadline=QTimer(process);self.deadline.setSingleShot(True);self.deadline.setInterval(15*60*1000);self.deadline.timeout.connect(process.kill)
   process.start();self.deadline.start();self.changed.emit();return True
  def error(self,*_):self.finished(-1)
- def finished(self,*_):
+ def finished(self,*result):
   process=self.job
   if process is None:return
   self.job=None
   raw=bytes(process.readAllStandardOutput())
   try:response=json.loads(raw)
-  except ValueError:response={'ok':False,'error':'Update worker could not complete'}
+  except ValueError:
+   # A GUI interpreter may have no stdout in a console-free launch.
+   # Its exit status and the atomic state projection are authoritative.
+   clean=bool(result and result[0]==0 and process.exitStatus()==QProcess.ExitStatus.NormalExit)
+   response={'ok':True} if not raw.strip() and clean and (self.folder/'state.json').exists() else {'ok':False,'error':'Update worker could not complete'}
   process.deleteLater();self.read()
   if response.get('ok') and self.job_action=='mode':QTimer.singleShot(0,self.background)
   if not response.get('ok'):

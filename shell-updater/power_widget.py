@@ -4,11 +4,13 @@ import sys
 from pathlib import Path
 from PyQt6.QtCore import QEvent
 from PyQt6.QtWidgets import QComboBox,QTextBrowser
-sys.path.insert(0,str(Path.home()/'.config/yasb/shell-updater'))
+sys.path.insert(0,str(Path(__import__('os').environ.get('OMNI_PROGRAM_ROOT',str(Path.home()/'.config/yasb')))/'shell-updater'))
 from service import UpdateService
+from omni_layout import load_bar_fonts
 _InstalledPowerMenuWidget=PowerMenuWidget
 class PowerMenuWidget(_InstalledPowerMenuWidget):
  def __init__(self,config):
+  load_bar_fonts()
   super().__init__(config);self.updates=UpdateService.instance();self.updates.changed.connect(self.update_state)
   self.update_dot=QLabel(self);self.update_dot.setObjectName('taskbarUpdateDot');self.update_dot.setAccessibleName('Taskbar update needs attention')
   self.update_dot.setFixedSize(5,5);self.update_dot.setStyleSheet('background:#ef5252;border-radius:2px;')

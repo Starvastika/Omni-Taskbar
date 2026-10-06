@@ -22,14 +22,14 @@ class Bridge(QObject):
     computeDone=Signal(str,int,object,str);busyChanged=Signal()
     mapAssetsChanged=Signal();mapWorkDone=Signal(object,object,str)
     clocksChanged=Signal();timersChanged=Signal();alarmsChanged=Signal();stopwatchDisplayChanged=Signal();planEpochChanged=Signal()
-    def __init__(self,root):
-        super().__init__();self.root=Path(root);self.engine=Engine(self.root/'data');self.panel_visible=False
+    def __init__(self,root,data_root=None):
+        super().__init__();self.root=Path(root);self.data_root=Path(data_root or root);self.engine=Engine(self.data_root/'data');self.panel_visible=False
         from services.persistence import AtomicWriter
         self.writer=AtomicWriter();self.engine.writer=self.writer
         initial=self.engine.snapshot();self._state=self.presentation_state(initial);today=dt.datetime.now().date();self._calendar=self.engine.calendar(today.year,today.month,today.isoformat())
         self._search=[];self._status='Ready';self._night=terminator(time.time());self._plan_ids=None;self._plan={}
         self.executor=ThreadPoolExecutor(max_workers=2,thread_name_prefix='time-center');self.generation=0;self.cache={};self.preview=None
-        self.cachefile=self.root/'data/search-cache.json'
+        self.cachefile=self.data_root/'data/search-cache.json'
         try:self.cache=json.loads(self.cachefile.read_text('utf-8'))
         except (OSError,ValueError):pass
         from services.map_renderer import MapImages,MapRenderer

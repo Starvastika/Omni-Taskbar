@@ -2,6 +2,8 @@
 from __future__ import annotations
 import contextlib,datetime as dt,hashlib,json,os,re,shutil,stat,subprocess,sys,time,urllib.error,urllib.parse,urllib.request,uuid,zipfile
 from pathlib import Path,PurePosixPath
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from omni_layout import user_root,program_root,child_environment
 MODES=('automatic','check','manual')
 MAX_DOWNLOAD=768*1024*1024
 MAX_EXPANDED=1536*1024*1024
@@ -37,7 +39,7 @@ def validate_manifest(value):
  semver(value.get('version'));semver(value.get('minimum_updater_version'))
  if value.get('channel')!='stable' or value.get('requires_windows_restart') is not False:raise ValueError('Unsupported release policy')
  if not re.fullmatch(r'[a-f0-9]{64}',str(value.get('sha256',''))):raise ValueError('Missing release checksum')
- if value.get('asset')!=f"yasb-shell-{value['version']}.zip":raise ValueError('Release asset/version mismatch')
+ if value.get('asset')!=f"omni-taskbar-{value['version']}-update.zip":raise ValueError('Release asset/version mismatch')
  if value.get('requires_shell_restart') is not True:raise ValueError('Unsupported restart policy')
  return value
 
@@ -45,7 +47,7 @@ class Network:
  def __init__(self,opener=None):self.opener=opener or urllib.request.urlopen
  def get(self,url,limit=4*1024*1024,etag=None):
   if urllib.parse.urlsplit(url).scheme!='https':raise ValueError('HTTPS required')
-  headers={'User-Agent':'YASB-Shell-Updater/1','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+  headers={'User-Agent':'Omni-Taskbar-Updater/1','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
   if etag:headers['If-None-Match']=etag
   for attempt in range(2):
    try:
@@ -64,7 +66,7 @@ class Network:
   raise OSError('Network unavailable')
  def download(self,url,path):
   if urllib.parse.urlsplit(url).scheme!='https':raise ValueError('HTTPS required')
-  with self.opener(urllib.request.Request(url,headers={'User-Agent':'YASB-Shell-Updater/1'}),timeout=20) as reply,Path(path).open('wb') as stream:
+  with self.opener(urllib.request.Request(url,headers={'User-Agent':'Omni-Taskbar-Updater/1'}),timeout=20) as reply,Path(path).open('wb') as stream:
    if urllib.parse.urlsplit(reply.geturl()).scheme!='https':raise ValueError('Insecure redirect')
    count=0;deadline=time.monotonic()+300
    while chunk:=reply.read(1024*1024):
@@ -75,8 +77,8 @@ class Network:
 
 class Updater:
  def __init__(self,root,network=None,lifecycle=None):
-  self.root=Path(root).resolve();self.data=self.root/'shell-updater/data'
-  if self.data.is_symlink() or self.data.is_junction() or not self.data.resolve().is_relative_to(self.root):raise ValueError('Updater data path must remain inside installation')
+  self.root=Path(root).resolve();self.user_root=user_root(self.root);self.data=self.user_root/'shell-updater/data'
+  if self.data.is_symlink() or self.data.is_junction() or not self.data.resolve().is_relative_to(self.user_root):raise ValueError('Updater data path must remain inside user directory')
   self.data.mkdir(parents=True,exist_ok=True)
   self.network=network or Network();self.lifecycle=lifecycle or WindowsLifecycle(self.root)
   self.version=read(self.root/'version.json');semver(self.version['version'])
@@ -189,11 +191,11 @@ class Updater:
      if archive.read(name)[:4]!=importlib.util.MAGIC_NUMBER:raise ValueError('Runtime bytecode ABI mismatch')
     if archive.testzip() is not None:raise ValueError('Runtime archive damaged')
  def shipped(self,name):
-  if name in ('version.json','CHANGELOG.md','README.md','THIRD_PARTY_NOTICES.md'):return True
+  if name in ('version.json','CHANGELOG.md','README.md','THIRD_PARTY_NOTICES.md','LICENSE','omni_layout.py','Omni-Taskbar.exe','SOURCE_ACCESS.md','distribution/source-access.json','distribution/font-source.json'):return True
   if name=='.runtime/yasb-2.0.7/lib/library.zip':return True
   if name.startswith(('weather-center/app/','weather-center/services/','weather-center/qml/','weather-center/assets/','weather-center/vendor/',
                       'time-center/app/','time-center/services/','time-center/qml/','time-center/map/',
-                      'shell-updater/','distribution/defaults/','distribution/licenses/','helpers/application_command_bar/','helpers/active_app_center/')):
+                      'shell-updater/','distribution/fonts/','distribution/defaults/','distribution/licenses/','helpers/application_command_bar/','helpers/active_app_center/')):
    return not name.endswith(('.log','.pyc','.tmp')) and 'tests' not in PurePosixPath(name).parts
   return name in ('helpers/yasb-watchdog.ps1','helpers/watchdog-maintenance.ps1','weather-center/toggle.vbs','weather-center/toggle.ps1',
                   'time-center/toggle.vbs','time-center/requirements.txt','distribution/register-startup.ps1','distribution/uninstall.ps1',
@@ -221,6 +223,12 @@ class Updater:
   self.state.update({'status':status,'error':type(exc).__name__+': '+str(exc)[:240],'attention':True,'failure':True,'busy':False})
   self.save();self.log('failure '+type(exc).__name__)
  def destination(self,name):
+  if name.startswith('@user/'):
+   relative=name[6:]
+   if relative not in ('config.yaml','styles.css','shell-updater/data/migrations.json'):raise ValueError('Unowned user destination')
+   target=self.user_root/relative
+   if not target.resolve().is_relative_to(self.user_root) or target.is_symlink() or target.is_junction():raise ValueError('Unsafe user destination')
+   return target
   target=self.root/name
   if target.is_symlink() or target.is_junction() or any(p.is_symlink() or p.is_junction() for p in target.parents if p!=self.root.parent):raise ValueError('Symlink/reparse destination')
   if not target.resolve().is_relative_to(self.root):raise ValueError('Destination outside installation')
@@ -233,7 +241,7 @@ class Updater:
  def migrate(self,old,new):
   # Versioned additive migrations preserve unknown options; never replace live config.
   from migrations import migrate
-  migrate(self.root,old,new)
+  migrate(self.root,old,new,self.user_root)
  def apply(self,natural=False):
   if natural and self.state.get('mode')!='automatic':return self.state
   if self.state.get('failure') or self.state.get('transaction'):
@@ -247,17 +255,22 @@ class Updater:
   try:
    if hasattr(self.lifecycle,'prepare'):self.lifecycle.prepare()
    shutil.copy2(Path(__file__),self.data/'recovery_runner.py')
+   shutil.copy2(Path(__file__).resolve().parent.parent/'omni_layout.py',self.data/'omni_layout.py')
    # Journal/lease precede stopping anything. Crash recovery can restore each copied file.
    self.state.update({'transaction':{'backup':str(backup.relative_to(self.data)),'records':records,'previous':previous,'target':new,'expected':getattr(self.lifecycle,'expected',{})},
                       'status':'Installing '+new,'attention':True,'busy':True,'recovery_attempted':False});self.save()
    self.maintenance(True);self.lifecycle.stop()
-   for name in list(inventory['files'])+['config.yaml','styles.css','shell-updater/data/migrations.json']:
+   protected=['@user/config.yaml','@user/styles.css','@user/shell-updater/data/migrations.json']
+   if (self.root/'omni-installed.json').exists():protected.append('installation-files.json')
+   for name in list(inventory['files'])+protected:
     target=self.destination(name);existed=target.exists()
     if existed:(backup/name).parent.mkdir(parents=True,exist_ok=True);shutil.copy2(target,backup/name)
     records[name]=existed
     # Persist the restoration record before replacing this file.
     self.state['transaction']['records']=records;self.save()
     if name in inventory['files']:self.replace(folder/name,target)
+   if (self.root/'omni-installed.json').exists():
+    installed=read(self.root/'installation-files.json');installed['version']=new;installed.setdefault('files',{}).update(inventory['files']);atomic(self.root/'installation-files.json',installed)
    self.migrate(previous,new);self.log('migration complete');self.lifecycle.start()
    if not self.lifecycle.health():raise RuntimeError('New shell failed health check')
    self.version=read(self.root/'version.json')
@@ -315,11 +328,11 @@ class Updater:
    if p!=keep and p.is_dir():shutil.rmtree(p)
 
 class WindowsLifecycle:
- def __init__(self,root):self.root=Path(root);self.expected={};self.log_offset=0
+ def __init__(self,root):self.root=Path(root);self.user_root=user_root(self.root);self.expected={};self.log_offset=0
  def run(self,args,timeout=10):
-  return subprocess.run(args,timeout=timeout,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),capture_output=True,encoding='utf-8',env=dict(os.environ,PYTHONIOENCODING='utf-8'))
+  return subprocess.run(args,timeout=timeout,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),capture_output=True,encoding='utf-8',env=dict(child_environment(self.root,self.user_root),PYTHONIOENCODING='utf-8'))
  def python(self):
-  config=read(self.root/'helpers/runtime-settings.json')
+  config=read(self.user_root/'helpers/runtime-settings.json')
   return config.get('python') or sys.executable
  def status(self,name):
   try:
@@ -330,7 +343,7 @@ class WindowsLifecycle:
  def stop(self):
   cli=self.root/'.runtime/yasb-2.0.7/yasbc.exe'
   if not self.expected:self.expected={name:bool(self.status(name).get('running')) for name in ('time','weather')}
-  self.run([str(cli),'stop'])
+  if self.running():self.run([str(cli),'stop'])
   for name in ('time','weather'):
    if self.expected.get(name):self.run([self.python(),str(self.root/(name+'-center/app/main.py')),'--quit'],5)
   deadline=time.monotonic()+10
@@ -339,13 +352,17 @@ class WindowsLifecycle:
    time.sleep(.2)
   raise RuntimeError('Shell components did not exit cleanly')
  def start(self):
-  log=self.root/'yasb.log';self.log_offset=log.stat().st_size if log.exists() else 0
+  if not self.running() and self.running(any_installation=True):raise RuntimeError('Another YASB installation is already running; stop it before starting Omni Taskbar')
+  if (self.root/'omni-installed.json').exists():
+   from native_taskbar import reserve_native_cutover
+   reserve_native_cutover(self.root,self.user_root)
+  log=self.user_root/'yasb.log';self.log_offset=log.stat().st_size if log.exists() else 0
   self.run([str(self.root/'.runtime/yasb-2.0.7/yasbc.exe'),'start'])
   for name,expected in self.expected.items():
    if expected:
     subprocess.Popen([self.python().replace('python.exe','pythonw.exe'),str(self.root/(name+'-center/app/main.py'))],
-                     cwd=self.root,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
- def running(self):
+                     cwd=self.root,env=child_environment(self.root,self.user_root),creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ def running(self,any_installation=False):
   import ctypes
   from ctypes import wintypes as W
   k=ctypes.windll.kernel32
@@ -364,7 +381,7 @@ class WindowsLifecycle:
      if process:
       path=ctypes.create_unicode_buffer(32768);size=W.DWORD(32768)
       try:
-       if k.QueryFullProcessImageNameW(process,0,path,ctypes.byref(size)) and path.value.casefold()==str(self.root/'.runtime/yasb-2.0.7/yasb.exe').casefold():found=True
+       if k.QueryFullProcessImageNameW(process,0,path,ctypes.byref(size)) and (any_installation or path.value.casefold()==str(self.root/'.runtime/yasb-2.0.7/yasb.exe').casefold()):found=True
       finally:k.CloseHandle(process)
     ok=k.Process32NextW(handle,ctypes.byref(entry))
   finally:k.CloseHandle(handle)
@@ -390,7 +407,7 @@ class WindowsLifecycle:
  def health(self):
   deadline=time.monotonic()+35;stable=0
   while time.monotonic()<deadline:
-   log=self.root/'yasb.log'
+   log=self.user_root/'yasb.log'
    if log.exists():
     with log.open('rb') as stream:stream.seek(self.log_offset);new=stream.read(1024*1024).decode('utf-8',errors='replace')
     if '[ERROR]' in new or 'Traceback' in new:return False
@@ -419,9 +436,9 @@ def lock(folder):
 
 def main():
  import argparse
- p=argparse.ArgumentParser();p.add_argument('--root',default=str(Path.home()/'.config/yasb'));p.add_argument('--action',choices=('check','background','stage','apply','install','auto','mode','recover','post-crash-rollback'),required=True);p.add_argument('--mode',choices=MODES);a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('--root',default=str(program_root()));p.add_argument('--action',choices=('check','background','stage','apply','install','auto','mode','recover','post-crash-rollback'),required=True);p.add_argument('--mode',choices=MODES);a=p.parse_args()
  try:
-  with lock(Path(a.root)/'shell-updater/data'):
+  with lock(user_root(a.root)/'shell-updater/data'):
    engine=Updater(a.root)
    if engine.state.get('busy') and not engine.state.get('transaction'):
     engine.fail('Previous update operation was interrupted',RuntimeError('Interrupted staging/check'))

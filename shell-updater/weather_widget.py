@@ -2,11 +2,13 @@
 exec('__YASB_BASE_CODE__')
 import copy,json,sys,time
 from pathlib import Path
-sys.path.insert(0,str(Path.home()/'.config/yasb/shell-updater'))
+sys.path.insert(0,str(Path(__import__('os').environ.get('OMNI_PROGRAM_ROOT',str(Path.home()/'.config/yasb')))/'shell-updater'))
 from weather_service import SharedWeather,identity
+from omni_layout import load_bar_fonts
 _InstalledOpenMeteoWidget=OpenMeteoWidget
 class OpenMeteoWidget(_InstalledOpenMeteoWidget):
  def __init__(self,config):
+  load_bar_fonts()
   super().__init__(config);self.shared=SharedWeather.instance()
   self.register_callback('weather_center',lambda:self.shared.open(not bool(self._location_data)))
   self.callback_left='weather_center';self.shared.changed.connect(self.adopt_shared)

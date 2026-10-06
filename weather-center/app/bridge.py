@@ -25,9 +25,9 @@ class Bridge(QObject,Actions):
   self._window=value
   from app.charts import WeatherChart
   WeatherChart.attachHost(value)
- def __init__(self,root):
-  super().__init__();self.root=Path(root);self.writer=AtomicWriter();self.store=StateStore(self.root,self.writer);self.images=MapImages();self._status=self.store.warning or 'Ready';self.visible=False;self._modal=0;self.window=None;self._results=[];self.generation=0;self._forecast={};self._air={};self._advanced={};self._compare=[];self._search_gen=0;self._map=None
-  self.http=HttpClient(self.root/'data/weather-cache',self.writer);self.providers=Providers(self.http);self.http.healthChanged.connect(self.healthChanged)
+ def __init__(self,root,data_root=None):
+  super().__init__();self.root=Path(root);self.data_root=Path(data_root or root);self.writer=AtomicWriter();self.store=StateStore(self.root,self.writer,self.data_root);self.images=MapImages();self._status=self.store.warning or 'Ready';self.visible=False;self._modal=0;self.window=None;self._results=[];self.generation=0;self._forecast={};self._air={};self._advanced={};self._compare=[];self._search_gen=0;self._map=None
+  self.http=HttpClient(self.data_root/'data/weather-cache',self.writer);self.providers=Providers(self.http);self.http.healthChanged.connect(self.healthChanged)
   self._datasets={};self._datasetVersions={};self._datasetAttempts={};self._solarDate=None
   self._uiState=ViewState(self.state,self)
   self._advancedUi=ViewState({},self);self._advancedSeen={};self._advancedMetadata={};self._emptyAdvanced={};self._advancedModels={kind:RowsModel(self) for kind in TTL};self.advancedChanged.connect(self.syncAdvanced)

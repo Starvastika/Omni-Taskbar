@@ -1,3 +1,4 @@
+# Legacy developer bootstrap; not a consumer release asset.
 param([string]$Repository='RELEASE_REPOSITORY',[string]$Version='RELEASE_VERSION',[ValidateSet('automatic','check','manual')][string]$UpdateMode,[string]$ReleaseDirectory)
 $ErrorActionPreference='Stop'
 $root=Join-Path $env:USERPROFILE '.config\yasb'
@@ -32,10 +33,10 @@ try {
         $base="https://github.com/$Repository/releases/download/v$Version"
         Invoke-WebRequest -Uri "$base/release-manifest.json" -OutFile (Join-Path $scratch 'release-manifest.json')
         $manifest=Get-Content -LiteralPath (Join-Path $scratch 'release-manifest.json') -Raw | ConvertFrom-Json
-        if ($manifest.version -ne $Version -or $manifest.asset -ne "yasb-shell-$Version.zip") {throw 'Release version mismatch.'}
+        if ($manifest.version -ne $Version -or $manifest.asset -ne "omni-taskbar-$Version-update.zip") {throw 'Release version mismatch.'}
         Invoke-WebRequest -Uri "$base/$($manifest.asset)" -OutFile (Join-Path $scratch $manifest.asset)
     }
-    if ($manifest.asset -notmatch '^yasb-shell-\d+\.\d+\.\d+\.zip$' -or $manifest.sha256 -notmatch '^[a-f0-9]{64}$' -or
+    if ($manifest.asset -notmatch '^omni-taskbar-\d+\.\d+\.\d+-update\.zip$' -or $manifest.sha256 -notmatch '^[a-f0-9]{64}$' -or
         (Get-FileHash -LiteralPath (Join-Path $scratch $manifest.asset)).Hash.ToLower() -ne $manifest.sha256) {throw 'Release checksum verification failed.'}
     $extract=Join-Path $scratch 'bootstrap'
     # Execute bootstrap only after SHA-256 verification. Extract only fixed filenames.

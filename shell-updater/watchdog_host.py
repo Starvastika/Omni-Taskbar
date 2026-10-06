@@ -3,6 +3,9 @@ import ctypes as C,json,os,subprocess,sys,time
 from ctypes import wintypes as W
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from omni_layout import user_root,child_environment
+USER_ROOT=user_root(ROOT)
 K=C.WinDLL('kernel32',use_last_error=True);A=C.WinDLL('advapi32',use_last_error=True)
 def api(library,name,result,*args):
  f=getattr(library,name);f.restype=result;f.argtypes=list(args);return f
@@ -55,12 +58,12 @@ def read(path):
  except (OSError,ValueError):return {}
 def event(text):
  try:
-  log=ROOT/'helpers/watchdog.log'
+  log=USER_ROOT/'helpers/watchdog.log'
   if log.exists() and log.stat().st_size>65536:os.replace(log,log.with_suffix('.log.old'))
   with log.open('a',encoding='utf-8') as f:f.write(time.strftime('%Y-%m-%dT%H:%M:%S%z')+' '+text+'\n')
  except OSError:pass
 def launch(args,env=None):
- return subprocess.Popen(args,cwd=ROOT,env=env,creationflags=subprocess.CREATE_NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ return subprocess.Popen(args,cwd=ROOT,env=env or child_environment(ROOT,USER_ROOT),creationflags=subprocess.CREATE_NO_WINDOW,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 def retry_delay(attempt):return min(300,30*2**min(4,attempt-1))
 def lease_valid(lease,owner,now):
  return bool(lease.get('expires',0)>now and owner.get('path') and owner.get('started',0)>0 and owner['started']<=lease.get('created',0)+1)
@@ -75,14 +78,16 @@ def main():
  # mutex. A short kernel wait avoids dropping the immediately resumed task.
  owns=wait(mutex,5000) in (0,128)
  if not owns:close(mutex);return 0
- settings=read(ROOT/'helpers/watchdog-settings.json');current=info(os.getpid())['session']
+ settings=read(USER_ROOT/'helpers/watchdog-settings.json');current=info(os.getpid())['session']
  states={name:{'next':0,'attempts':0,'seen':None,'pending':False} for name in ('yasb','LibreHardwareMonitor','TimeCenter','WeatherCenter')}
- data=ROOT/'shell-updater/data'
+ data=USER_ROOT/'shell-updater/data'
  try:
   event('Watchdog started in console-free host.')
   time.sleep(15)
   while True:
-   if (data/'manual-maintenance.json').exists():time.sleep(8);continue
+   manual=read(data/'manual-maintenance.json')
+   if manual.get('exit'):return 0
+   if manual:time.sleep(8);continue
    lease=read(data/'maintenance.json');owner=info(int(lease.get('owner',0))) if lease.get('owner') else {}
    if lease_valid(lease,owner,time.time()):
     time.sleep(8);continue

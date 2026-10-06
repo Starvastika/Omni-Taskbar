@@ -1,0 +1,10 @@
+{
+  "version": "3.4.0",
+  "url": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip",
+  "sha256": "76f05ff3ace48a464a6ca57977998784ff7bdbb65a6d915d7e401cd3927c493c",
+  "files": {
+    "JetBrainsMonoNerdFontPropo-Bold.ttf": "07e7af578e39762815514e9f725d8cc714870409d0b31e6dcb895bcad250c3ea",
+    "JetBrainsMonoNerdFontPropo-Regular.ttf": "35e41e359798b2c4f21d8aea86051c87c9c68cc73276846d338308b4bf1b135f",
+    "OFL.txt": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad"
+  }
+}

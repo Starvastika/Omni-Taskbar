@@ -38,7 +38,7 @@ def fixture(version='1.0.1',extra=None):
   for name,value in files.items():z.writestr(name,value)
   z.writestr('package-files.json',json.dumps(inventory))
  archive=buf.getvalue();manifest={'version':version,'minimum_updater_version':'1.0.0','channel':'stable',
-  'asset':f'yasb-shell-{version}.zip','sha256':hashlib.sha256(archive).hexdigest(),'requires_shell_restart':True,'requires_windows_restart':False}
+  'asset':f'omni-taskbar-{version}-update.zip','sha256':hashlib.sha256(archive).hexdigest(),'requires_shell_restart':True,'requires_windows_restart':False}
  base=f'https://github.com/example/shell/releases/download/v{version}/'
  release={'tag_name':'v'+version,'draft':False,'prerelease':False,'body':'Changes <script>not executed</script>',
           'assets':[{'name':manifest['asset'],'browser_download_url':base+manifest['asset']},

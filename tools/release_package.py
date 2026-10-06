@@ -7,12 +7,12 @@ from engine import safe_name,semver,Updater
 
 SOURCE_DIRS=('weather-center/app','weather-center/services','weather-center/qml','weather-center/assets','weather-center/vendor',
              'time-center/app','time-center/services','time-center/qml','time-center/map',
-             'helpers/application_command_bar','helpers/active_app_center','shell-updater','distribution/defaults','distribution/licenses')
-SOURCE_FILES=('version.json','CHANGELOG.md','README.md','THIRD_PARTY_NOTICES.md','helpers/yasb-watchdog.ps1','helpers/watchdog-maintenance.ps1',
+             'helpers/application_command_bar','helpers/active_app_center','shell-updater','distribution/defaults','distribution/licenses','distribution/fonts')
+SOURCE_FILES=('version.json','LICENSE','omni_layout.py','CHANGELOG.md','README.md','THIRD_PARTY_NOTICES.md','helpers/yasb-watchdog.ps1','helpers/watchdog-maintenance.ps1',
               'weather-center/toggle.vbs','weather-center/toggle.ps1','time-center/toggle.vbs','time-center/requirements.txt',
               'weather-center/Launcher.exe','weather-center/Launcher.cpp','weather-center/build-launcher.ps1')
-SOURCE_FILES=SOURCE_FILES+('distribution/register-startup.ps1','distribution/uninstall.ps1','distribution/runtime-base.json')
-SUFFIXES={'.py','.pyi','.qml','.js','.json','.geojson','.txt','.md','.ps1','.vbs','.css','.yaml','.dat','.csv','.png','.svg','.frag','.vert'}
+SOURCE_FILES=SOURCE_FILES+('distribution/runtime-base.json','distribution/source-access.json','SOURCE_ACCESS.md','distribution/font-source.json')
+SUFFIXES={'.ttf','.py','.pyi','.qml','.js','.json','.geojson','.txt','.md','.ps1','.vbs','.css','.yaml','.dat','.csv','.png','.svg','.frag','.vert'}
 def sources(root):
  root=Path(root);result={}
  for folder in SOURCE_DIRS:
@@ -58,13 +58,14 @@ def build(root=ROOT,output=None,runtime=None):
  files=sources(root);privacy(files)
  overlay=root/'distribution/runtime-overlay.zip'
  files['.runtime/yasb-2.0.7/lib/library.zip']=sanitized_library(runtime or overlay)
- inventory={'version':version,'files':{n:hashlib.sha256(data).hexdigest() for n,data in sorted(files.items())}}
+ if (root/'dist/Omni-Taskbar.exe').exists():files['Omni-Taskbar.exe']=(root/'dist/Omni-Taskbar.exe').read_bytes()
+ inventory={'version':version,'files':{n:hashlib.sha256(data).hexdigest() for n,data in sorted(files.items()) if n!='package-files.json'}}
  files['package-files.json']=json.dumps(inventory,sort_keys=True).encode()
- artifact=output/f'yasb-shell-{version}.zip'
+ artifact=output/f'omni-taskbar-{version}-update.zip'
  with zipfile.ZipFile(artifact,'w',zipfile.ZIP_DEFLATED) as archive:
   for name,data in sorted(files.items()):
    info=zipfile.ZipInfo(name,(2026,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;archive.writestr(info,data)
- manifest={'version':version,'channel':'stable','published_at':dt.datetime.now(dt.UTC).isoformat(),'asset':artifact.name,
+ manifest={'product':'Omni Taskbar','repository':metadata['repository'],'version':version,'channel':'stable','published_at':dt.datetime.now(dt.UTC).isoformat(),'asset':artifact.name,
            'sha256':hashlib.sha256(artifact.read_bytes()).hexdigest(),'minimum_updater_version':metadata['updater_version'],
            'requires_shell_restart':True,'requires_windows_restart':False}
  (output/'release-manifest.json').write_text(json.dumps(manifest,indent=2),'utf-8')

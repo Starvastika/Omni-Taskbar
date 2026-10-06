@@ -12,6 +12,9 @@ import time
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+sys.path.insert(0,str(ROOT.parent))
+from omni_layout import component_data
+DATA_ROOT=component_data('time-center',ROOT.parent)
 import site
 site.addsitedir(str(ROOT/".venv/Lib/site-packages"))
 NAME='YasbTimeCenter-'+hashlib.sha256(str(ROOT).casefold().encode()).hexdigest()[:16]
@@ -51,16 +54,16 @@ def main():
     from app.models import StableModel
     from shiboken6 import isValid
     qmlRegisterType(StableModel,'TimeCenter',1,0,'StableModel')
-    (ROOT/'logs').mkdir(exist_ok=True);(ROOT/'data').mkdir(exist_ok=True)
-    handler=RotatingFileHandler(ROOT/'logs/time-center.log',maxBytes=131072,backupCount=2,encoding='utf-8');handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'));logging.basicConfig(level=logging.INFO,handlers=[handler])
+    (DATA_ROOT/'logs').mkdir(parents=True,exist_ok=True);(DATA_ROOT/'data').mkdir(exist_ok=True)
+    handler=RotatingFileHandler(DATA_ROOT/'logs/time-center.log',maxBytes=131072,backupCount=2,encoding='utf-8');handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'));logging.basicConfig(level=logging.INFO,handlers=[handler])
     sys.excepthook=lambda kind,error,trace:logging.error('Unhandled exception',exc_info=(kind,error,trace))
     qInstallMessageHandler(lambda mode,context,message:logging.warning('Qt: %s',message))
     QQuickStyle.setStyle('Basic');app=QGuiApplication(sys.argv);app.setQuitOnLastWindowClosed(False);app.setApplicationName('YASB Time Center')
-    lock=QLockFile(str(ROOT/'data/host.lock'));lock.setStaleLockTime(0)
+    lock=QLockFile(str(DATA_ROOT/'data/host.lock'));lock.setStaleLockTime(0)
     if not lock.tryLock(0):send(command);return 0
     server=QLocalServer();server.setSocketOptions(QLocalServer.SocketOption.UserAccessOption);QLocalServer.removeServer(NAME)
     if not server.listen(NAME):logging.error('IPC socket failed: %s',server.errorString());return 1
-    bridge=Bridge(ROOT);engine=QQmlApplicationEngine();engine.addImageProvider('world',bridge.mapImages);engine.rootContext().setContextProperty('bridge',bridge)
+    bridge=Bridge(ROOT,DATA_ROOT);engine=QQmlApplicationEngine();engine.addImageProvider('world',bridge.mapImages);engine.rootContext().setContextProperty('bridge',bridge)
     engine.load(QUrl.fromLocalFile(str(ROOT/'qml/Main.qml')))
     if not engine.rootObjects():logging.error('QML did not load');return 1
     window=engine.rootObjects()[0]
@@ -115,7 +118,7 @@ def main():
                 if isValid(s):s.deleteLater()
             socket.disconnected.connect(disconnected)
     server.newConnection.connect(connected)
-    pidfile=ROOT/'data/host.json';pidfile.write_text(json.dumps({'pid':os.getpid(),'started':time.time(),'executable':sys.executable,'baseExecutable':sys._base_executable}),encoding='utf-8')
+    pidfile=DATA_ROOT/'data/host.json';pidfile.write_text(json.dumps({'pid':os.getpid(),'started':time.time(),'executable':sys.executable,'baseExecutable':sys._base_executable}),encoding='utf-8')
     def quit_cleanly():
         bridge.shutdown();server.close();lock.unlock()
         try:pidfile.unlink()

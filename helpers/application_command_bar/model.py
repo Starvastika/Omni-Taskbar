@@ -13,10 +13,10 @@ from PyQt6.QtWidgets import QApplication
 from core.widgets.services.active_app_center import ActiveAppService
 
 log=logging.getLogger('application_commands')
-ROOT=Path.home()/'.config/yasb/helpers/application_command_bar'
+ROOT=Path(os.environ.get('OMNI_PROGRAM_ROOT',str(Path.home()/'.config/yasb')))/'helpers/application_command_bar'
 PYTHON=Path.home()/'AppData/Local/Python/pythoncore-3.14-64/pythonw.exe'
 try:
-    _settings=json.loads((ROOT.parent/'runtime-settings.json').read_text('utf-8'))
+    _settings=json.loads((Path(os.environ.get('OMNI_USER_ROOT',str(ROOT.parents[1])))/'helpers/runtime-settings.json').read_text('utf-8'))
     if _settings.get('python'):PYTHON=Path(_settings['python']).with_name('pythonw.exe')
 except (OSError,ValueError):pass
 

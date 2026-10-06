@@ -3,14 +3,15 @@ import json,sys
 from pathlib import Path
 from engine import atomic,read,semver
 
-def migrate(root,old,new):
+def migrate(root,old,new,user=None):
  root=Path(root);semver(old);semver(new)
+ data=Path(user or root)
  if semver(new)<semver(old):raise ValueError('Downgrade migration rejected')
- path=root/'shell-updater/data/migrations.json';state=read(path,{'applied':[]})
+ path=data/'shell-updater/data/migrations.json';state=read(path,{'applied':[]})
  # No wholesale config replacement. The first migration only removes the obsolete
  # weather exec callback; the supported shared callback is registered by our widget.
  if 'shared-weather-1' not in state['applied']:
-  config=root/'config.yaml'
+  config=data/'config.yaml'
   if config.exists():
    sys.path.insert(0,str(root/'weather-center/vendor'))
    import yaml

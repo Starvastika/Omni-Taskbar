@@ -13,8 +13,9 @@ def validate():
   inventory=validator.extract(archive,Path(tmp)/'extract',manifest['version'])
   assert 'weather-center/services/compact.py' in inventory['files']
   assert 'shell-updater/engine.py' in inventory['files']
-  assert 'distribution/register-startup.ps1' in inventory['files']
   assert '.runtime/yasb-2.0.7/lib/library.zip' in inventory['files']
+  assert 'omni_layout.py' in inventory['files']
+  assert 'LICENSE' in inventory['files']
   for name in ('time-center/qml/Theme.js','time-center/qml/MapGeometry.js','weather-center/qml/components/Theme.js'):
    assert name in inventory['files']
  print('Release version, SHA-256, privacy, inventory, extraction and required components PASS')

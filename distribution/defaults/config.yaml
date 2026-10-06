@@ -1,7 +1,7 @@
 watch_stylesheet: true
 watch_config: true
 debug: false
-update_check: true
+update_check: false  # Omni updates the pinned runtime through its own release pipeline.
 bars:
 
   top-bar:
@@ -676,6 +676,6 @@ widgets:
         show_holidays: false
         show_week_numbers: true
       callbacks:
-        on_left: 'exec wscript.exe "{install_root}\time-center\toggle.vbs"'
+        on_left: 'exec "{install_root}\Omni-Taskbar.exe" --time'
         on_middle: toggle_calendar
         on_right: context_menu

@@ -4,6 +4,9 @@ from ctypes import wintypes
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+sys.path.insert(0,str(ROOT.parent))
+from omni_layout import component_data,user_root
+DATA_ROOT=component_data('weather-center',ROOT.parent)
 # Charts rasterize in a bounded worker; native QML textures render independently.
 # No Python paint virtual runs on Qt's render thread.
 os.environ.setdefault('QSG_RENDER_LOOP','threaded')
@@ -36,15 +39,15 @@ def main():
  from PySide6.QtQuickControls2 import QQuickStyle
  from app.bridge import Bridge
  from app.charts import WeatherChart
- (ROOT/'logs').mkdir(exist_ok=True);(ROOT/'data').mkdir(exist_ok=True)
- handler=RotatingFileHandler(ROOT/'logs/weather-center.log',maxBytes=262144,backupCount=2,encoding='utf-8');handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'));logging.basicConfig(level=logging.INFO,handlers=[handler])
+ (DATA_ROOT/'logs').mkdir(parents=True,exist_ok=True);(DATA_ROOT/'data').mkdir(exist_ok=True)
+ handler=RotatingFileHandler(DATA_ROOT/'logs/weather-center.log',maxBytes=262144,backupCount=2,encoding='utf-8');handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'));logging.basicConfig(level=logging.INFO,handlers=[handler])
  sys.excepthook=lambda k,e,t:logging.error('Unhandled exception',exc_info=(k,e,t))
  qInstallMessageHandler(lambda mode,ctx,msg:logging.warning('Qt: %s',msg))
  QQuickStyle.setStyle('Basic');app=QGuiApplication(sys.argv);app.setQuitOnLastWindowClosed(False);app.setApplicationName('YASB Weather Center')
- lock=QLockFile(str(ROOT/'data/host.lock'));lock.setStaleLockTime(0)
+ lock=QLockFile(str(DATA_ROOT/'data/host.lock'));lock.setStaleLockTime(0)
  if not lock.tryLock(0):send(command);return 0
  qmlRegisterType(WeatherChart,'WeatherCenter',1,0,'WeatherChart')
- bridge=Bridge(ROOT if not a.data_root else Path(a.data_root));engine=QQmlApplicationEngine();engine.addImageProvider('weatherMap',bridge.images);engine.rootContext().setContextProperty('weather',bridge)
+ bridge=Bridge(ROOT,Path(a.data_root) if a.data_root else DATA_ROOT);engine=QQmlApplicationEngine();engine.addImageProvider('weatherMap',bridge.images);engine.rootContext().setContextProperty('weather',bridge)
  engine.load(QUrl.fromLocalFile(str(ROOT/'qml/Main.qml')))
  if not engine.rootObjects():logging.error('QML failed to load');bridge.shutdown();return 1
  window=engine.rootObjects()[0];bridge.window=window;u=ctypes.windll.user32
@@ -58,7 +61,7 @@ def main():
   previous[0]=u.GetForegroundWindow();area=app.primaryScreen().availableGeometry()
   # Keep clear of the edge-revealed top overlay without changing app-bar space.
   import yaml
-  config=yaml.safe_load((ROOT.parent/'config.yaml').read_text('utf-8'));top=next((b for b in config['bars'].values() if b.get('enabled',True) and b['alignment']['position']=='top'),None)
+  config=yaml.safe_load((user_root(ROOT.parent)/'config.yaml').read_text('utf-8'));top=next((b for b in config['bars'].values() if b.get('enabled',True) and b['alignment']['position']=='top'),None)
   screen=app.primaryScreen().geometry()
   if top and area.top()==screen.top():area.adjust(0,int(top['dimensions']['height'])+int(top.get('padding',{}).get('top',0)),0,0)
   bottom=next((b for b in config['bars'].values() if b.get('enabled',True) and b['alignment']['position']=='bottom'),None)
@@ -114,9 +117,9 @@ def main():
     socket.deleteLater()
    s.readyRead.connect(read);s.disconnected.connect(disconnected)
  server.newConnection.connect(connected)
- pidfile=ROOT/'data/host.json';pidfile.write_text(json.dumps({'pid':os.getpid(),'started':time.time(),'executable':sys.executable,'baseExecutable':sys._base_executable,'script':str(Path(__file__).resolve())}),'utf-8')
+ pidfile=DATA_ROOT/'data/host.json';pidfile.write_text(json.dumps({'pid':os.getpid(),'started':time.time(),'executable':sys.executable,'baseExecutable':sys._base_executable,'script':str(Path(__file__).resolve())}),'utf-8')
  runtime={'pipe':NAME,'python':sys._base_executable.replace('python.exe','pythonw.exe'),'script':str(Path(__file__).resolve())}
- (ROOT/'runtime.json').write_text(json.dumps(runtime),'utf-8')
+ (DATA_ROOT/'runtime.json').write_text(json.dumps(runtime),'utf-8')
  def quit_cleanly():
   server.close()
   for s in tuple(clients):s.blockSignals(True);s.close()

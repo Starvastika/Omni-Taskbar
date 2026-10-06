@@ -19,7 +19,7 @@ def location(data,temporary=False):
 def discover_yasb(root):
  """Read the actual widget's explicit saved record; never modify YASB data."""
  import yaml
- try:config=yaml.safe_load((root.parent/'config.yaml').read_text('utf-8'))
+ try:config=yaml.safe_load((Path(os.environ.get('YASB_CONFIG_HOME',str(root.parent)))/'config.yaml').read_text('utf-8'))
  except (OSError,ValueError):return None
  name=next((n for n,w in config['widgets'].items() if w['type']=='yasb.open_meteo.OpenMeteoWidget'),None)
  if not name:return None
@@ -57,8 +57,8 @@ class AtomicWriter:
   with self.condition:self.closing=True;self.condition.notify()
   self.thread.join(timeout=10)
 class StateStore:
- def __init__(self,root,writer):
-  self.root=Path(root);self.path=self.root/'data/state.json';self.writer=writer;self.warning=''
+ def __init__(self,root,writer,data_root=None):
+  self.root=Path(root);self.path=Path(data_root or root)/'data/state.json';self.writer=writer;self.warning=''
   home=discover_yasb(self.root);self.state=default_state(home)
   if self.path.exists():
    try:

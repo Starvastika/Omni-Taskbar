@@ -136,11 +136,11 @@ class Actions:
   elif action=='copy':QGuiApplication.clipboard().setText(str(data['text']));self.status_text('Copied');return
   elif action=='rawCopy':QGuiApplication.clipboard().setText(json.dumps({'metadata':self.metadata,'forecast':self._forecast.get('data'),'air':self._air.get('data')},indent=2));self.status_text('Copied raw provider data');return
   elif action=='export':
-   folder=self.root/'exports';folder.mkdir(exist_ok=True);name=re.sub(r'[^a-zA-Z0-9_-]','_',data.get('name','weather'));path=folder/(name+'.csv');path.write_text(str(data['text']),'utf-8-sig');self.status_text('Exported '+str(path));return
+   folder=getattr(self,'data_root',self.root)/'exports';folder.mkdir(exist_ok=True);name=re.sub(r'[^a-zA-Z0-9_-]','_',data.get('name','weather'));path=folder/(name+'.csv');path.write_text(str(data['text']),'utf-8-sig');self.status_text('Exported '+str(path));return
   elif action=='open':
    target=data['url']
    if target.startswith('https://'):QDesktopServices.openUrl(QUrl(target))
-   elif target=='logs':QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.root/'logs')))
+   elif target=='logs':QDesktopServices.openUrl(QUrl.fromLocalFile(str(getattr(self,'data_root',self.root)/'logs')))
    return
   elif action=='clearCache':self.http.clear();self.status_text('Weather cache cleared · saved settings retained');return
   elif action=='calculate':
@@ -151,7 +151,7 @@ class Actions:
   elif action=='resetWeather':
    if data.get('confirmed') is not True:raise ValueError('Confirm Weather Center reset in Settings')
    from services.state import default_state
-   self.writer.submit(self.root/'data/state.before-reset.json',self.state);self.clearDatasets();self.store.state=default_state(discover_yasb(self.root));self._advanced={};self._forecast={};self._air={};self.persist();self.publish();self.loadSelected();return
+   self.writer.submit(getattr(self,'data_root',self.root)/'data/state.before-reset.json',self.state);self.clearDatasets();self.store.state=default_state(discover_yasb(self.root));self._advanced={};self._forecast={};self._air={};self.persist();self.publish();self.loadSelected();return
   elif action=='syncHome':
    home=discover_yasb(self.root)
    if not home:raise ValueError('YASB has no explicit saved weather location')

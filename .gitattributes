@@ -16,3 +16,6 @@ weather-center/vendor/** whitespace=-blank-at-eof,-trailing-space
 *.zip -text
 *.exe -text
 *.png -text
+
+# Preserve the official third-party font license byte for byte.
+distribution/fonts/OFL.txt -whitespace -text

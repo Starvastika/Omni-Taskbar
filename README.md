@@ -1,124 +1,53 @@
-# YASB integrated Windows shell
+# Omni Taskbar
 
-A compact grayscale dual-bar shell for Windows 11, built on YASB 2.0.7. It includes protected
-top-bar work-area/reveal behavior, a shared application/window command model, Time Center,
-Weather Center and a lightweight recovery watchdog.
+A compact grayscale Windows 11 shell powered by YASB 2.0.7, with Time Center, Weather Center, Application Command Bar, system tray, virtual desktops, and safe integrated updates.
 
-## Requirements and installation
+## Install
 
-Windows 11 x64, Python 3.14 x64 and network access for initial dependency installation.
-The installer validates Python and uses an isolated environment for pinned Qt/timezone dependencies.
-YASB is obtained from its official versioned release with checksum verification. No user token is
-needed for public release checks. Optional GPU/LHM monitoring requires suitable drivers and
-Libre Hardware Monitor configured independently. Updates do not require elevation.
+Download **Omni-Taskbar-Setup-1.0.0.exe** from [GitHub Releases](https://github.com/Starvastika/Omni-Taskbar/releases). Run that one file. No separate Python, YASB, Git, terminal commands, or dependency downloads are needed. Setup works offline and installs per user without administrator rights.
 
-Download install.cmd and install.ps1 from a tagged project release into the same folder, then open
-install.cmd. The release bootstrap already knows its repository/version. The graphical first-run dialog asks
-for Automatic updates, Check automatically, or Manual only. The bootstrap uses the release manifest
-and SHA-256, installs only into %USERPROFILE%\.config\yasb, creates user-local settings,
-registers the existing watchdog architecture, and starts the shell. Existing configuration is preserved.
-The same watchdog task uses a console-free Python host, a current-user mutex, the original 15-second
-startup grace/eight-second checks/bounded backoff, and process-lifetime validation. The PowerShell
-watchdog file remains a compatible launch entry point. It is one watchdog, not a second updater daemon.
+Requires Windows 11 x64. The installer includes private Python 3.14.7, YASB 2.0.7, Qt bindings, timezone packages, maps, QML, and private Nerd Font glyphs. Windows supplies Segoe UI. Hardware sensors depend on compatible drivers and optional Libre Hardware Monitor; keyboard layouts are your Windows settings.
 
-This checkout has no configured GitHub repository yet. Set repository in version.json to the chosen
-owner/repository before publishing; clients never update from main. Public clients need public releases.
+Default program folder: %LOCALAPPDATA%\Programs\Omni-Taskbar. Settings and personal data: %APPDATA%\Omni-Taskbar. These are separate from a developer checkout at %USERPROFILE%\.config\yasb.
 
-## Weather
-
-weather-center/data/state.json owns the selected location, saved locations and preferences.
-Migration prefers a valid Weather Center selection, otherwise imports a valid old YASB weather.json
-location, otherwise remains unconfigured. Coordinates and IANA timezone are retained.
-
-Weather Center atomically writes a derived data/compact.json snapshot of the selected identity and
-forecast. The compact bar watches atomic replacements; it never edits a second location state or
-sends a separate weather request. Changed identity clears old data, and generations reject old provider
-results. SI/UTC values are adapted to the existing upward card's local-time/unit contract.
-Compact weather refreshes at the configured interval while Weather Center is hidden.
-
-Click Setup location to open Weather Center directly to Locations with the actual search focused.
-Later changes update both surfaces without restarting YASB. Offline/error states preserve the
-selected location and indicate stale/unavailable data. State, projections and caches are never committed.
+Setup asks how to update and whether to start the shell. Run the same EXE to repair or manually upgrade. Uninstall through Windows Installed Apps; settings and personal data are retained unless you explicitly select their removal. On first launch, Omni enables native Windows taskbar auto-hide once. Uninstall restores the prior preference when it still matches Omni’s setting; later user changes are preserved. Windows is never rebooted automatically. This initial build is unsigned: Windows may show Unknown Publisher or SmartScreen. Verify the release SHA-256; do not disable Windows security.
 
 ## Updates
 
-Open the existing top-right ... account/power menu, then Taskbar Updates below Manage accounts.
-It shows the installed version, Check for Updates, What's New, contextual Install Update /
-Restart & Update Now, and the update-mode selector.
+Open the existing top-right **... â†’ Taskbar Updates**, directly below Manage accounts. It shows the installed version, Check for Updates, What's New, an applicable Install Update / Restart & Update Now button, and the update-mode selector.
 
-- Automatic updates: check on startup and at most every six hours; verify and stage, then apply
-  at the next natural taskbar restart. Restart & Update Now is optional.
-- Check automatically: background checks and persistent indicators; installation requires a click.
-- Manual only: no background network checks; Check for Updates runs only when requested.
+- **Automatic updates:** verify and stage stable releases; apply at the next safe taskbar restart.
+- **Check automatically** (setup default): notify; install only when requested.
+- **Manual only:** no background checks; check when requested.
 
-The initial choice is unset until you choose. There is no implicit automatic-update opt-in.
-Available/staged/failed/rolled-back updates leave red dots on ... and the Taskbar Updates row.
-Opening/closing the popup never clears them. Successful installation resolves update attention.
-Release notes are plain text, never executable HTML. Windows is never automatically rebooted.
+A tiny red dot on ... and Taskbar Updates remains while an update is available, staged, failed, or rolled back. Opening the popup does not clear it. There is no additional updater icon. The internal omni-taskbar-x.y.z-update.zip is for the updater; normal users do not need it.
 
-The updater uses the stable latest-release endpoint with ETag caching, bounded timeouts and backoff,
-as described by [GitHub's release API](https://docs.github.com/en/rest/releases/releases).
-It validates configured-repository assets, stable semantic versions, SHA-256, minimum updater version,
-shell restart and an explicit prohibition of Windows restart.
+Updates come only from [Starvastika/Omni-Taskbar releases](https://github.com/Starvastika/Omni-Taskbar/releases), never raw main. Repository-bound manifests, SHA-256 and per-file inventories protect staging. Maintenance leases suspend the existing watchdog during transactions. Compatible configuration migrations preserve unknown fields; component health failure restores the previous files/config and retains an attention indicator.
 
-Downloads enter user-scoped staging. SHA-256, inventory hashes, version, paths, duplicates, symlinks,
-size bounds and program-file ownership are validated before live files are touched.
-The existing watchdog honors a bounded process-owned maintenance lease. A durable transaction journal
-and one rollback copy protect replaced files and compatible config/migration metadata.
-Shell components are stopped through their existing CLI/IPC. Health verifies the two native YASB
-bars and expected companion IPC across several samples. Failed health/migration restores previous
-files/config, starts the previous shell and leaves failure attention without a restart loop.
-The watchdog recovers interrupted transactions with a pre-update engine copy.
+## Your data
 
-## Data, recovery and uninstall
+Weather Center owns the selected/saved locations. Its compact projection drives bottom-bar weather. Setup location opens Locations and focuses real search. Changing location updates both surfaces immediately. Offline/provider errors preserve a configured location.
 
-Live config/styles, stable-v1, companion data/caches/logs/exports, local runtime paths, update
-settings/staging/backups and authentication are ignored. Sanitized first-install defaults are in
-distribution/defaults; upgrades do not replace live config. Migrations are additive/idempotent,
-preserve unknown fields and back up configuration first.
+Time Center clocks, timers, alarms and planner, Weather Center locations/preferences, caches, logs and updater state stay in the user-data folder. Fresh installs have empty personal state. Releases contain sanitized defaults, never the developer's configuration or saved locations. Upgrades preserve configuration and data.
 
-For intentional maintenance, helpers/watchdog-maintenance.ps1 -Action Stop disables supervision;
-use the private CLI and companion --quit commands. -Action Start resumes it.
-shell-updater/data/state.json records the latest result. Failed rollback keeps its journal/backup
-for recovery; retain them until the shell works.
+The top bar reserves work area while visible. Maximized/Snap hover reveal reserves space before showing; fullscreen-like windows never reveal. Application commands depend on what Windows/applications expose; Window/Actions/search fallback remains available.
 
-distribution/uninstall.ps1 removes only this shell's autostart/watchdog and retains user data,
-stable-v1 and Windows taskbar preferences. Restore native taskbar auto-hide through Windows settings
-if desired. LHM installations/tasks are not removed.
+## Licensing and source
 
-## Development and release
+Original custom work: [MIT](LICENSE), copyright 2026 Starvastika. Upstream components retain their own licenses, including PyQt GPLv3 and Qt/PySide LGPL/GPL conditions. The combined distribution is subject to those conditions; it is not wholly MIT. See [third-party notices](THIRD_PARTY_NOTICES.md) and [corresponding source access](SOURCE_ACCESS.md). Every binary release provides an advanced corresponding-source archive and exact public Qt source links. Required notices are installed. Qt DLLs remain separate and replaceable.
 
-Use Python 3.14, matching the frozen YASB bytecode ABI. On Windows:
+## Build and release
 
+Maintainers need Windows x64, Python 3.14, Visual Studio C++ build tools and Inno Setup 6.7.3. These are build tools, not consumer requirements.
+
+    python tools/prepare_installer_deps.py
+    powershell -File tools/build_omni_launcher.ps1
+    powershell -File weather-center/build-launcher.ps1
     python -m unittest discover -s shell-updater/tests
-    python tools/build_release_runtime.py
-    python tools/release_package.py
+    python tools/release_build.py
 
-The frozen base contains code only, has a pinned checksum and is privacy-reviewed. Builds overlay
-the readable weather/account integrations and command model. Native dependencies come from the
-verified official YASB release. Updating the frozen base is an explicit reviewed maintenance step.
+Verified official dependency archives are downloaded only at build time. The readable patch recipe reproduces the frozen YASB base and is checked against its pinned snapshot. Explicit inventories exclude personal/runtime files. dist contains the full EXE, compact update ZIP, manifest, checksums, and corresponding source.
 
-Maintainer sequence:
+Use a separate installation fixture; never test over a live developer shell. The Windows release workflow tests a fresh EXE-installed layout, repair, upgrades, updater success/rollback, uninstall and state preservation before creating a draft release. Interactive shell coverage must also be recorded before publication. A prepared workflow is not evidence of an actual successful GitHub run.
 
-1. Choose repository name/visibility; set repository in version.json.
-2. Update the single version.json version and CHANGELOG.md.
-3. Run tests, privacy scan and package dry-run; review staged changes.
-4. Commit/push normally. Never force-push.
-5. Push vMAJOR.MINOR.PATCH, matching version.json.
-6. Windows GitHub Actions tests/checks privacy and builds the exact tag.
-7. Upload the ZIP, SHA256SUMS, manifest and bootstrap to a draft GitHub Release.
-8. Inspect the artifacts, then publish the tested release.
-9. Clients detect the published stable release according to their policy.
-
-The workflow has not run on GitHub until a repository/tag is actually pushed.
-Run local mock-release success/rollback tests before relying on public releases.
-Measured local/live results and coverage limits are in the completion report.
-
-## Compatibility and licensing
-
-Pinned to YASB 2.0.7 / Python 3.14 / Windows 11 x64. Fullscreen apps never reveal the top bar;
-ordinary maximized/Snap reveal reserves space before showing. Native/UIA commands depend on
-what each app exposes; fallback Window/Actions/search remains useful.
-Hardware sensors and keyboard layouts are machine settings, not installed by this package.
-
-No license has been chosen for original custom work; see [third-party notices](THIRD_PARTY_NOTICES.md).
+Push main normally after privacy review; never force-push. Tag v1.0.0 only at the reviewed version commit. Inspect the actual Actions logs and draft assets, verify checksums and the targeted shell matrix, then publish the stable release. Optional trusted Authenticode signing hooks are in tools/sign_artifacts.ps1. No self-signed certificate is used.

@@ -36,4 +36,4 @@ def project(state,bundle,generation):
          'error':str(bundle.get('error',''))[:300],'offline':bool(state['prefs'].get('offline')),'published':time.time()}
 
 def publish(bridge):
- bridge.writer.submit(bridge.root/'data/compact.json',project(bridge.state,bridge._forecast,bridge.generation),immutable=True)
+ bridge.writer.submit(getattr(bridge,'data_root',bridge.root)/'data/compact.json',project(bridge.state,bridge._forecast,bridge.generation),immutable=True)
