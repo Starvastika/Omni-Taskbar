@@ -22,6 +22,7 @@ node_modules/
 **/runtime.json
 **/runtime-settings.json
 helpers/watchdog-settings.json
+helpers/watchdog-host.json
 helpers/install-shell-polish.ps1
 *_REPORT.md
 YASB_DUAL_BAR_NOTES.md
