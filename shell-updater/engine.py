@@ -362,7 +362,7 @@ class WindowsLifecycle:
    if expected:
     subprocess.Popen([self.python().replace('python.exe','pythonw.exe'),str(self.root/(name+'-center/app/main.py'))],
                      cwd=self.root,env=child_environment(self.root,self.user_root),creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
- def running(self,any_installation=False):
+ def running(self,any_installation=False,runtime=False):
   import ctypes
   from ctypes import wintypes as W
   k=ctypes.windll.kernel32
@@ -376,12 +376,12 @@ class WindowsLifecycle:
   try:
    ok=k.Process32FirstW(handle,ctypes.byref(entry))
    while ok:
-    if entry.exe.casefold()=='yasb.exe':
+    if entry.exe.casefold() in (('python.exe','pythonw.exe') if runtime else ('yasb.exe',)):
      process=k.OpenProcess(0x1000,False,entry.pid)
      if process:
       path=ctypes.create_unicode_buffer(32768);size=W.DWORD(32768)
       try:
-       if k.QueryFullProcessImageNameW(process,0,path,ctypes.byref(size)) and (any_installation or path.value.casefold()==str(self.root/'.runtime/yasb-2.0.7/yasb.exe').casefold()):found=True
+       if k.QueryFullProcessImageNameW(process,0,path,ctypes.byref(size)) and (Path(path.value).parent==self.root/'runtime/python' if runtime else (any_installation or path.value.casefold()==str(self.root/'.runtime/yasb-2.0.7/yasb.exe').casefold())):found=True
       finally:k.CloseHandle(process)
     ok=k.Process32NextW(handle,ctypes.byref(entry))
   finally:k.CloseHandle(handle)

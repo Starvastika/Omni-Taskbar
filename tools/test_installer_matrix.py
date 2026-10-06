@@ -15,7 +15,11 @@ def run(setup,upgrade,fixture,shell=False):
   args=[str(exe),'/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/NOICONS','/DIR='+str(program),'/DATA_DIR='+str(data),'/UPDATEMODE=check','/LOG='+str(fixture/'setup.log')]
   args+=['/NOLAUNCH=1']
   if not shell:args+=['/NOSTARTUP=1']
-  record('actual EXE install '+exe.name,subprocess.run(args,timeout=240).returncode==0)
+  result=subprocess.run(args,timeout=240)
+  if result.returncode:
+   error=data/'shell-updater/data/installer-error.json'
+   print('Installer exit',result.returncode,error.read_text('utf-8') if error.exists() else (fixture/'setup.log').read_text('utf-8',errors='replace')[-2400:],flush=True)
+  record('actual EXE install '+exe.name,result.returncode==0)
  def embedded(script,*args):
   env=dict(os.environ,PATH=os.environ['WINDIR']+'\\System32',OMNI_PROGRAM_ROOT=str(program),OMNI_USER_ROOT=str(data),YASB_CONFIG_HOME=str(data),LOCALAPPDATA=str(data/'local'))
   if script.endswith('test_installed_widgets.py'):env.update(YASB_NATIVE_RUNTIME=str(program/'.runtime/yasb-2.0.7'),QT_QPA_PLATFORM='offscreen')

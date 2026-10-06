@@ -68,9 +68,13 @@ def prepare(root,data,owner):
  backup=data/'shell-updater/data/installer-rollback'
  if backup.exists():
   assert backup.resolve().is_relative_to(data);shutil.rmtree(backup)
- journal={'existing':existing,'files':[],'previous':read(root/'version.json').get('version'),'mode':read(data/'shell-updater/data/state.json').get('mode')}
+ journal={'existing':existing,'files':[],'previous':read(root/'version.json').get('version'),'mode':read(data/'shell-updater/data/state.json').get('mode'),'manual_previous':read(data/'shell-updater/data/manual-maintenance.json'),'watchdog_running':bool(read(data/'helpers/watchdog-host.json').get('pid'))}
  if existing:
+  atomic(data/'shell-updater/data/manual-maintenance.json',{'manual':True,'exit':True})
   life=WindowsLifecycle(root);life.prepare();journal['expected']=life.expected.copy();journal['yasb_running']=life.running();life.stop()
+  deadline=time.monotonic()+26
+  while life.running(runtime=True) and time.monotonic()<deadline:time.sleep(.2)
+  if life.running(runtime=True):raise RuntimeError('Owned embedded runtime is still in use; close its applications before repair')
   for p in root.rglob('*'):
    if not p.is_file() or p.name.startswith('unins') or p.name in ('omni-installed.json',):continue
    if p.is_symlink() or p.is_junction():raise ValueError('Unsafe existing program file')
@@ -78,6 +82,12 @@ def prepare(root,data,owner):
   for name in ('config.yaml','styles.css'):
    if (data/name).exists():(backup/'@user').mkdir(exist_ok=True);shutil.copy2(data/name,backup/'@user'/name)
  atomic(data/'shell-updater/data/installer-journal.json',journal)
+def restore_manual(data,journal):
+ path=Path(data)/'shell-updater/data/manual-maintenance.json'
+ if journal.get('manual_previous'):atomic(path,journal['manual_previous'])
+ else:
+  with contextlib.suppress(FileNotFoundError):path.unlink()
+
 def rollback(root,data):
  root=Path(root);data=Path(data);journal=read(data/'shell-updater/data/installer-journal.json');backup=data/'shell-updater/data/installer-rollback'
  if journal.get('existing'):
@@ -91,6 +101,8 @@ def rollback(root,data):
    target=root/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(backup/name,target)
   for name in ('config.yaml','styles.css'):
    if (backup/'@user'/name).exists():shutil.copy2(backup/'@user'/name,data/name)
+  restore_manual(data,journal)
+  if journal.get('watchdog_running'):register(root,data,start_now=True)
   if journal.get('yasb_running') or any(journal.get('expected',{}).values()):
    life.expected=journal.get('expected',{});life.start()
  else:
@@ -121,7 +133,8 @@ def finish(root,data,mode,owner,launch=True,startup=True):
   if launch:
    life=WindowsLifecycle(root);life.expected={'time':True,'weather':True};life.start()
    if not life.health():raise RuntimeError('New shell health failed')
-  if startup:register(root,data,start_now=launch)
+  restore_manual(data,journal)
+  if startup:register(root,data,start_now=launch or bool(journal.get('watchdog_running')))
   # One rollback set only; discard successful setup copies, never user state.
   backup=data/'shell-updater/data/installer-rollback'
   if backup.exists():shutil.rmtree(backup)

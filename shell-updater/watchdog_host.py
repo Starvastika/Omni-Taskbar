@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from omni_layout import user_root,child_environment
+from engine import atomic
 USER_ROOT=user_root(ROOT)
 K=C.WinDLL('kernel32',use_last_error=True);A=C.WinDLL('advapi32',use_last_error=True)
 def api(library,name,result,*args):
@@ -81,6 +82,7 @@ def main():
  settings=read(USER_ROOT/'helpers/watchdog-settings.json');current=info(os.getpid())['session']
  states={name:{'next':0,'attempts':0,'seen':None,'pending':False} for name in ('yasb','LibreHardwareMonitor','TimeCenter','WeatherCenter')}
  data=USER_ROOT/'shell-updater/data'
+ marker=USER_ROOT/'helpers/watchdog-host.json';atomic(marker,info(os.getpid()))
  try:
   event('Watchdog started in console-free host.')
   time.sleep(15)
@@ -132,6 +134,9 @@ def main():
     except Exception as exc:event(name+' launch failed: '+type(exc).__name__+'; bounded retry remains.')
    time.sleep(8)
  finally:
+  if read(marker).get('pid')==os.getpid():
+   try:marker.unlink()
+   except FileNotFoundError:pass
   api(K,'ReleaseMutex',W.BOOL,W.HANDLE)(mutex);close(mutex)
 if __name__=='__main__':
  try:raise SystemExit(main())
