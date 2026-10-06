@@ -204,6 +204,17 @@ class Updater:
    if sha(folder/name)!=digest:raise ValueError('Staged file damaged')
   if read(folder/'version.json').get('version')!=version:raise ValueError('Staged version mismatch')
   return folder,inventory
+ def install(self):
+  # Explicit retry repairs an incomplete/damaged local stage by downloading
+  # and verifying again. It never asks the user to copy or replace files.
+  if self.state.get('failure'):self.state['failure']=False;self.save()
+  if self.state.get('staged_version'):
+   try:self.verify_stage()
+   except Exception:
+    self.state['staged_version']=None;self.save()
+  value=self.state if self.state.get('staged_version') else self.stage()
+  if value.get('staged_version') and not value.get('failure'):return self.apply()
+  return value
  def fail(self,status,exc):
   self.state.update({'status':status,'error':type(exc).__name__+': '+str(exc)[:240],'attention':True,'failure':True,'busy':False})
   self.save();self.log('failure '+type(exc).__name__)
@@ -417,9 +428,7 @@ def main():
    elif a.action=='stage':value=engine.stage()
    elif a.action=='apply':value=engine.apply()
    elif a.action=='install':
-    if engine.state.get('failure'):engine.state['failure']=False;engine.save()
-    value=engine.state if engine.state.get('staged_version') else engine.stage()
-    if value.get('staged_version') and not value.get('failure'):value=engine.apply()
+    value=engine.install()
    elif a.action=='auto':value=engine.apply(True) if engine.state.get('staged_version') or engine.state.get('transaction') else engine.check()
    elif a.action=='recover':value=engine.recover() if engine.state.get('transaction') else engine.state
    elif a.action=='post-crash-rollback':value=engine.rollback_recent()

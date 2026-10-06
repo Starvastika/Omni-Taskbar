@@ -112,6 +112,9 @@ class Tests(unittest.TestCase):
   self.available();self.engine.state['staged_version']='1.0.1';self.engine.apply();self.assertTrue(self.engine.state['failure']);self.assertEqual(self.life.calls,[])
  def test_damaged_stage_fails_before_stop(self):
   self.available();self.engine.stage();(self.engine.data/'staged/README.md').write_text('bad');self.engine.apply();self.assertEqual(self.life.calls,[])
+ def test_one_click_repairs_damaged_stage(self):
+  self.available();self.engine.stage();(self.engine.data/'staged/README.md').write_text('bad');self.engine.install()
+  self.assertEqual(self.engine.state.get('last_update_result'),'success');self.assert_data()
  def test_checksum_mismatch(self):
   self.available();self.http.archive+=b'bad';self.engine.stage();self.assertTrue(self.engine.state['failure']);self.assertFalse((self.engine.data/'staged').exists())
  def test_corrupt_zip(self):
