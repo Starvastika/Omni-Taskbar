@@ -3,13 +3,17 @@ $ErrorActionPreference='Stop'
 $name='YASB Stable V1 Watchdog'
 $task=Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
 $updateData=Join-Path (Split-Path -Parent $PSScriptRoot) 'shell-updater\data'
+New-Item -ItemType Directory -Force -Path $updateData | Out-Null
+$manual=Join-Path $updateData 'manual-maintenance.json'
+if ($Action -eq 'Stop') { '{"manual":true}' | Set-Content -LiteralPath $manual }
+else { Remove-Item -LiteralPath $manual -ErrorAction SilentlyContinue }
 if (-not $task) {
     New-Item -ItemType Directory -Force -Path $updateData | Out-Null
     $manual=Join-Path $updateData 'manual-maintenance.json'
     if ($Action -eq 'Stop') { '{"manual":true}' | Set-Content -LiteralPath $manual; Write-Output 'Watchdog recovery paused.' }
     else {
         Remove-Item -LiteralPath $manual -ErrorAction SilentlyContinue
-        Start-Process powershell.exe -ArgumentList @('-NoProfile','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $PSScriptRoot 'yasb-watchdog.ps1')+'"')) -WindowStyle Hidden
+        & (Join-Path $PSScriptRoot 'yasb-watchdog.ps1')
         Write-Output 'Watchdog recovery resumed.'
     }
     exit

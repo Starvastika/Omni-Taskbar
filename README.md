@@ -17,6 +17,9 @@ install.cmd. The release bootstrap already knows its repository/version. The gra
 for Automatic updates, Check automatically, or Manual only. The bootstrap uses the release manifest
 and SHA-256, installs only into %USERPROFILE%\.config\yasb, creates user-local settings,
 registers the existing watchdog architecture, and starts the shell. Existing configuration is preserved.
+The same watchdog task uses a console-free Python host, a current-user mutex, the original 15-second
+startup grace/eight-second checks/bounded backoff, and process-lifetime validation. The PowerShell
+watchdog file remains a compatible launch entry point. It is one watchdog, not a second updater daemon.
 
 This checkout has no configured GitHub repository yet. Set repository in version.json to the chosen
 owner/repository before publishing; clients never update from main. Public clients need public releases.
