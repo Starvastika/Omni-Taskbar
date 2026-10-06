@@ -47,6 +47,9 @@ def run(setup,upgrade,fixture,shell=False):
   record('actual uninstall '+('explicit data removal' if remove else 'default preserves data'),subprocess.run(args,timeout=90).returncode==0)
  uninstall()
  record('default uninstall retains user data',all(Path(p).read_bytes()==v for p,v in before.items()))
+ # Inno's uninstaller launches delayed self-deletion after its main process exits.
+ deadline=time.monotonic()+20
+ while program.exists() and any(p.is_file() for p in program.rglob('*')) and time.monotonic()<deadline:time.sleep(.2)
  left=[p.relative_to(program).as_posix() for p in program.rglob('*') if p.is_file()] if program.exists() else []
  print('Remaining program files after uninstall:',left,flush=True)
  record('default uninstall removes all owned program files',not left)
