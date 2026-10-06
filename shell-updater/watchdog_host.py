@@ -4,6 +4,7 @@ from ctypes import wintypes as W
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 from omni_layout import user_root,child_environment
 from engine import atomic
 USER_ROOT=user_root(ROOT)
