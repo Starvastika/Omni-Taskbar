@@ -71,7 +71,9 @@ def companion_valid(record,host,path,script,current,check_script=True):
 def main():
  mutex=api(K,'CreateMutexW',W.HANDLE,C.c_void_p,W.BOOL,W.LPCWSTR)(None,False,'Local\\YASB-StableV1-'+user_sid())
  wait=api(K,'WaitForSingleObject',W.DWORD,W.HANDLE,W.DWORD)
- owns=wait(mutex,0) in (0,128)
+ # Scheduler Stop may report Ready before the previous process releases its
+ # mutex. A short kernel wait avoids dropping the immediately resumed task.
+ owns=wait(mutex,5000) in (0,128)
  if not owns:close(mutex);return 0
  settings=read(ROOT/'helpers/watchdog-settings.json');current=info(os.getpid())['session']
  states={name:{'next':0,'attempts':0,'seen':None,'pending':False} for name in ('yasb','LibreHardwareMonitor','TimeCenter','WeatherCenter')}
