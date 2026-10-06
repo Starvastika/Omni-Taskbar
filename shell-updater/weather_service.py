@@ -51,6 +51,14 @@ class SharedWeather(QObject):
    except (OSError,ValueError,KeyError):pass
   def connected():
    if done[0]:return
+   if os.name=='nt':
+    # Same explicit-click foreground handoff as the existing native launcher.
+    import ctypes
+    from ctypes import wintypes as W
+    pid=W.DWORD();query=ctypes.windll.kernel32.GetNamedPipeServerProcessId
+    query.argtypes=[W.HANDLE,ctypes.POINTER(W.DWORD)];query.restype=W.BOOL
+    if query(W.HANDLE(int(socket.socketDescriptor())),ctypes.byref(pid)):
+     ctypes.windll.user32.AllowSetForegroundWindow(pid.value)
    done[0]=True;socket.write((json.dumps({'command':command,'reply':False})+'\n').encode());socket.flush();socket.disconnectFromServer()
   socket.connected.connect(connected);socket.errorOccurred.connect(fallback);socket.disconnected.connect(cleanup)
   socket.connectToServer(name)
