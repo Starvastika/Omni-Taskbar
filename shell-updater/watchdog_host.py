@@ -86,7 +86,10 @@ def main():
  marker=USER_ROOT/'helpers/watchdog-host.json';atomic(marker,info(os.getpid()))
  try:
   event('Watchdog started in console-free host.')
-  time.sleep(15)
+  grace=time.monotonic()+15
+  while time.monotonic()<grace:
+   if read(data/'manual-maintenance.json').get('exit'):return 0
+   time.sleep(min(.25,max(0,grace-time.monotonic())))
   while True:
    manual=read(data/'manual-maintenance.json')
    if manual.get('exit'):return 0

@@ -158,9 +158,11 @@ def uninstall(root,data,remove=False,startup=True):
  root,data=ownership(root,data,True);marker=read(root/'omni-installed.json');owner=read(data/'.omni-owner.json')
  if marker.get('product')!=PRODUCT or owner.get('id')!=marker.get('id') or Path(owner.get('program_root','')).resolve()!=root:raise ValueError('Uninstall ownership could not be verified')
  atomic(data/'shell-updater/data/manual-maintenance.json',{'manual':True,'exit':True})
- time.sleep(8.2)  # one existing watchdog check interval, then it exits itself
  life=WindowsLifecycle(root);os.environ.update(child_environment(root,data))
  life.prepare();life.stop()
+ deadline=time.monotonic()+26
+ while life.running(runtime=True) and time.monotonic()<deadline:time.sleep(.2)
+ if life.running(runtime=True):raise RuntimeError('Owned runtime did not exit; uninstall preserved files')
  from native_taskbar import restore_native_cutover
  restore_native_cutover(root,data)
  if startup:

@@ -47,7 +47,9 @@ def run(setup,upgrade,fixture,shell=False):
   record('actual uninstall '+('explicit data removal' if remove else 'default preserves data'),subprocess.run(args,timeout=90).returncode==0)
  uninstall()
  record('default uninstall retains user data',all(Path(p).read_bytes()==v for p,v in before.items()))
- record('default uninstall removes owned program',not (program/'Omni-Taskbar.exe').exists() and not (program/'omni-installed.json').exists())
+ left=[p.relative_to(program).as_posix() for p in program.rglob('*') if p.is_file()] if program.exists() else []
+ print('Remaining program files after uninstall:',left,flush=True)
+ record('default uninstall removes all owned program files',not left)
  install(upgrade);record('reinstall recognizes retained owned data',all(Path(p).read_bytes()==v for p,v in before.items()))
  uninstall(True);record('explicit removal deletes only owned data',not data.exists())
  (fixture/'matrix-results.json').write_text(json.dumps(results,indent=2),'utf-8')

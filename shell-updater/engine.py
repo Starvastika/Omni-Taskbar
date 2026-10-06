@@ -376,7 +376,7 @@ class WindowsLifecycle:
   try:
    ok=k.Process32FirstW(handle,ctypes.byref(entry))
    while ok:
-    if entry.exe.casefold() in (('python.exe','pythonw.exe') if runtime else ('yasb.exe',)):
+    if (not runtime or entry.pid!=os.getpid()) and entry.exe.casefold() in (('python.exe','pythonw.exe') if runtime else ('yasb.exe',)):
      process=k.OpenProcess(0x1000,False,entry.pid)
      if process:
       path=ctypes.create_unicode_buffer(32768);size=W.DWORD(32768)
