@@ -1,0 +1,18 @@
+* text=auto
+*.py text eol=lf
+*.qml text eol=lf
+*.js text eol=lf
+helpers/application_command_bar/vendor/** whitespace=-blank-at-eof,-trailing-space
+weather-center/vendor/** whitespace=-blank-at-eof,-trailing-space
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.geojson text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.vbs text eol=crlf
+*.cpp text eol=lf
+*.zip -text
+*.exe -text
+*.png -text

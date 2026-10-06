@@ -1,0 +1,42 @@
+name: Build tested stable release
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          architecture: x64
+      - name: Require exact stable tag and intended repository
+        shell: pwsh
+        run: |
+          $metadata=Get-Content version.json -Raw | ConvertFrom-Json
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -ne "v$($metadata.version)") {throw 'Run only at the exact version tag.'}
+          if ($metadata.repository -ne $env:GITHUB_REPOSITORY) {throw 'Set the intended repository in version.json before releasing.'}
+      - name: Automated engine and privacy gates
+        shell: pwsh
+        run: |
+          python -m pip install PyYAML==6.0.3 -r time-center/requirements.txt
+          if ($LASTEXITCODE) {throw 'Test dependencies failed.'}
+          python -m unittest discover -s shell-updater/tests -v
+      - name: Build runtime and release
+        run: |
+          ./weather-center/build-launcher.ps1
+          python tools/release_build.py
+          if ($LASTEXITCODE) {throw 'Release packaging/verification failed.'}
+          python tools/verify_fresh_companions.py
+      - name: Upload tested draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version=(Get-Content version.json -Raw | ConvertFrom-Json).version
+          $tag="v$version"
+          gh release create $tag "dist/yasb-shell-$version.zip" dist/release-manifest.json dist/SHA256SUMS.txt dist/install.ps1 dist/install.cmd --verify-tag --draft --title "YASB Shell $version" --notes-file CHANGELOG.md

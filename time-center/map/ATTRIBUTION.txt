@@ -1,0 +1,7 @@
+Land geometry: Natural Earth, 1:110m land, public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson
+
+This is an interactive offline vector map, not a downloaded map screenshot.
+Timezone lookup: tzfpy / timezone-boundary-builder (see installed package license).
+Solar ephemeris: Astral 3.2 (Apache 2.0). Geocoding: Open-Meteo / GeoNames.

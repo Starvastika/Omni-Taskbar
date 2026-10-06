@@ -1,0 +1,14 @@
+Land geometry: Natural Earth, 1:110m land, public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson
+
+This is an interactive offline vector map, not a downloaded map screenshot.
+Timezone lookup: tzfpy / timezone-boundary-builder (see installed package license).
+Solar ephemeris: Astral 3.2 (Apache 2.0). Geocoding: Open-Meteo / GeoNames.
+
+Country boundaries / offline country lookup: Natural Earth, 1:110m countries, public domain.
+https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson
+
+Radar tiles and palette: Weather data by RainViewer.
+https://www.rainviewer.com/api/weather-maps-api.html
+Palette values in radar-palette.json were downloaded from the provider's documented Universal Blue color table (scheme 2). Original bins distinguish rain and snow; grayscale preserves alpha and uses the same data-bin labels. Visible attribution links remain on Map, Overview preview and Data Sources.

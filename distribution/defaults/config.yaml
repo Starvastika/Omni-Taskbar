@@ -1,0 +1,681 @@
+watch_stylesheet: true
+watch_config: true
+debug: false
+update_check: true
+bars:
+
+  top-bar:
+    enabled: true
+    screens:
+      - primary
+    class_name: yasb-top-bar
+    alignment:
+      position: top
+      align: center
+    animation:
+      enabled: true
+      duration: 180
+      type: slide
+    blur_effect:
+      enabled: true
+      round_corners: false
+      dark_mode: true
+      border_color: None
+    window_flags:
+      always_on_top: true  # Keep normal app windows and their shadows underneath.
+      windows_app_bar: false  # Controller reserves top space whenever visible, including floating mode.
+      hide_on_fullscreen: true
+      hide_on_maximized: true  # Event-driven maximize/Snap hover; fullscreen never reveals.
+      auto_hide: false  # Native input strip disabled; controller uses cursor-only sampling.
+    dimensions:
+      width: 100%
+      height: 34
+    padding:
+      top: 0
+      left: 0
+      bottom: 0
+      right: 0
+    widgets:
+      left:
+        - home
+        - active_window
+      center:
+        - windows_desktops
+      right:
+        - traffic
+        - memory
+        - cpu
+        - cpu_temperature
+        - gpu
+        - power_menu
+
+  bottom-bar:
+    enabled: true
+    screens:
+      - primary
+    class_name: yasb-bottom-bar
+    alignment:
+      position: bottom
+      align: center
+    animation:
+      enabled: true
+      duration: 180
+      type: slide
+    blur_effect:
+      enabled: true
+      round_corners: false
+      dark_mode: true
+      border_color: None
+    window_flags:
+      always_on_top: true  # Keep normal app windows and their shadows underneath.
+      windows_app_bar: true
+      hide_on_fullscreen: true
+      hide_on_maximized: false
+      auto_hide: false
+    dimensions:
+      width: 100%
+      height: 46
+    padding:
+      top: 0
+      left: 0
+      bottom: 0  # Stable v1: native Windows taskbar uses normal auto-hide.
+      right: 0
+    widgets:
+      left:
+        - open_meteo
+        - media
+        - start
+        - quick_launch
+      center:
+        - taskbar
+      right:
+        - systray
+        - language
+        - wifi
+        - bluetooth
+        - volume
+        - battery
+        - control_center
+        - notifications
+        - clock
+widgets:
+  home:
+    type: yasb.home.HomeWidget
+    options:
+      label: <span></span>
+      menu_list:
+        - title: User Home
+          path: '~'
+        - title: Download
+          path: ~\Downloads
+        - title: Documents
+          path: ~\Documents
+        - title: Pictures
+          path: ~\Pictures
+      system_menu: true
+      power_menu: true
+      blur: true
+      round_corners: true
+      round_corners_type: normal
+      border_color: System
+      alignment: left
+      offset_left: 0
+      direction: down
+  active_window:
+    type: yasb.active_window.ActiveWindowWidget
+    options:
+      label: '{win[title]}'
+      label_alt: '[class_name=''{win[class_name]}'' exe=''{win[process][name]}'' hwnd={win[hwnd]}]'
+      label_no_window: ''
+      label_icon: true
+      label_icon_size: 16
+      max_length: 36
+      max_length_ellipsis: '...'
+      monitor_exclusive: false
+  window_controls:
+    type: yasb.window_controls.WindowControlsWidget
+    options:
+      show_app_name: false
+      maximized_only: false
+      monitor_exclusive: false
+      buttons:
+        - minimize
+        - maximize
+        - close
+      button_labels:
+        minimize: 
+        maximize: 
+        restore: 
+        close: 
+  windows_desktops:
+    type: yasb.windows_desktops.WorkspaceWidget
+    options:
+      label_workspace_btn: '{index}'
+      label_workspace_active_btn: '{index}'
+      callbacks:
+        on_left: activate_workspace
+        on_middle: do_nothing
+        on_right: toggle_context_menu
+  traffic:
+    type: yasb.traffic.TrafficWidget
+    options:
+      label: ↓ {download_speed}  ↑ {upload_speed}
+      label_alt: Today ↓ {today_downloaded}  ↑ {today_uploaded}
+      interface: auto
+      update_interval: 1000
+      speed_unit: bytes
+      hide_decimal: true
+      hide_if_offline: false
+      menu:
+        direction: down
+        alignment: right
+        show_interface_name: true
+        show_internet_info: false
+      callbacks:
+        on_left: toggle_menu
+        on_right: toggle_label
+        on_middle: do_nothing
+  memory:
+    type: yasb.memory.MemoryWidget
+    options:
+      label: RAM {virtual_mem_percent}% {virtual_mem_used}/{virtual_mem_total}
+      label_alt: RAM available {virtual_mem_avail} / {virtual_mem_total}
+      update_interval: 5000
+      hide_decimal: false
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: toggle_label
+      menu:
+        enabled: true
+        show_graph: true
+        show_graph_grid: true
+        graph_history_size: 60
+        alignment: right
+        direction: down
+  cpu:
+    type: yasb.cpu.CpuWidget
+    options:
+      label: CPU {info[percent][total]}%
+      label_alt: CPU {info[freq][current]} MHz
+      update_interval: 2000
+      hide_decimal: true
+      menu:
+        enabled: true
+        show_graph: true
+        show_graph_grid: true
+        graph_history_size: 60
+        alignment: right
+        direction: down
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: toggle_label
+
+  cpu_temperature:
+    type: yasb.libre_monitor.LibreHardwareMonitorWidget
+    options:
+      class_name: libre-monitor-widget cpu-temperature
+      label: '{info[value]}{info[unit]}'
+      label_alt: '{info[value]}{info[unit]}'
+      update_interval: 2000
+      sensor_id: /intelcpu/0/temperature/10
+      precision: 0
+      server_host: localhost
+      server_port: 8085
+      sensor_id_error_label: ''
+      connection_error_label: ''
+      auth_error_label: ''
+      libre_menu:
+        direction: down
+        alignment: right
+        header_label: CPU Package Temperature
+        precision: 0
+        sensors:
+          - id: /intelcpu/0/temperature/10
+            name: CPU Package
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: do_nothing
+
+  gpu:
+    type: yasb.gpu.GpuWidget
+    options:
+      gpu_index: 0
+      label: GPU {info[utilization]:.0f}% {info[mem_used]}/{info[mem_total]} {info[temp]:.0f}°C
+      label_alt: '{info[name]} · {info[power_draw]}W'
+      update_interval: 2000
+      hide_decimal: false
+      menu:
+        enabled: true
+        show_graph: true
+        show_graph_grid: true
+        graph_history_size: 60
+        direction: down
+        alignment: right
+      callbacks:
+        on_left: toggle_menu
+        on_right: toggle_label
+        on_middle: do_nothing
+  power_menu:
+    type: yasb.power_menu.PowerMenuWidget
+    options:
+      label: <span></span>
+      uptime: true
+      show_user: true
+      menu_style: popup
+      popup:
+        blur: true
+        round_corners: true
+        round_corners_type: normal
+        border_color: System
+        alignment: right
+        offset_left: 0
+        direction: down
+      profile_image_size: 64
+      buttons:
+        lock:
+          - "\uDB80\uDF41"
+          - Lock
+        signout:
+          - "\uDB80\uDF43"
+          - Sign out
+        sleep:
+          - "\uDB82\uDD04"
+          - Sleep
+        hibernate:
+          - "\uDB82\uDD01"
+          - Hibernate
+        restart:
+          - "\uDB81\uDC53"
+          - Restart
+        shutdown:
+          - "\uDB82\uDD06"
+          - Shut Down
+        cancel:
+          - ''
+          - Cancel
+  open_meteo:
+    type: yasb.open_meteo.OpenMeteoWidget
+    options:
+      label: <span>{icon}</span>{temp}
+      label_alt: '{location}: Min {min_temp}, Max {max_temp}, Humidity {humidity}'
+      tooltip: true
+      update_interval: 600
+      hide_decimal: true
+      units: metric
+      callbacks:
+        on_left: weather_center
+        on_middle: toggle_card
+        on_right: toggle_label
+      icons:
+        sunnyDay: 
+        clearNight: 
+      weather_card:
+        blur: true
+        alignment: left
+        direction: up
+        icon_size: 32
+        show_hourly_forecast: true
+        time_format: 24h
+        hourly_point_spacing: 76
+        hourly_icon_size: 16
+        icon_smoothing: true
+        temp_line_width: 2
+        current_line_color: '#8EAEE8'
+        current_line_width: 1
+        current_line_style: dot
+        hourly_forecast_buttons:
+          enabled: false
+        weather_animation:
+          enabled: true
+          snow_overrides_rain: true
+          temp_line_animation_style: both
+          rain_effect_intensity: 1.0
+          snow_effect_intensity: 1.0
+          scale_with_chance: true
+  media:
+    type: yasb.media.MediaWidget
+    options:
+      label: '{title}{s}{artist}'
+      label_alt: '{title}'
+      separator: ' · '
+      hide_empty: true
+      callbacks:
+        on_left: toggle_media_menu
+        on_middle: do_nothing
+        on_right: do_nothing
+      max_field_size:
+        label: 22
+        label_alt: 30
+      show_thumbnail: true
+      controls_only: false
+      controls_left: true
+      controls_hide: true
+      thumbnail_alpha: 100
+      thumbnail_padding: 6
+      thumbnail_edge_fade: true
+      icons:
+        prev_track: 
+        next_track: 
+        play: 
+        pause: 
+      media_menu:
+        blur: true
+        round_corners: true
+        round_corners_type: normal
+        border_color: system
+        alignment: left
+        direction: up
+        thumbnail_corner_radius: 8
+        thumbnail_size: 120
+        max_title_size: 60
+        max_artist_size: 20
+        show_volume_slider: true
+      scrolling_label:
+        enabled: false
+        style: bounce
+        update_interval_ms: 40
+  start:
+    type: yasb.custom.CustomWidget
+    options:
+      class_name: start-button
+      label: <span></span>
+      label_alt: <span></span>
+      tooltip: true
+      tooltip_label: Windows Start
+      exec_options:
+        run_once: true
+      callbacks:
+        on_left: exec start_menu
+        on_right: do_nothing
+        on_middle: do_nothing
+
+  quick_launch:
+    type: yasb.quick_launch.QuickLaunchWidget
+    options:
+      label: <span></span>
+      search_placeholder: Search apps · @ settings · / files · = math
+      max_results: 30
+      show_icons: true
+      icon_size: 16
+      compact_text: true
+      providers:
+        apps:
+          enabled: true
+          prefix: '*'
+          priority: 0
+          show_recent: true
+          max_recent: 5
+          show_description: true
+        settings:
+          enabled: true
+          prefix: '@'
+        file_search:
+          enabled: true
+          prefix: /
+          backend: disk  # Search unindexed files too; supports drive/folder prefixes.
+          show_path: true
+          show_preview: true
+        clipboard_history:
+          enabled: true
+          prefix: cb
+          max_items: 30
+          show_preview: true
+        calculator:
+          enabled: true
+          prefix: '='
+        unit_converter:
+          enabled: true
+          prefix: '~'
+        vscode:
+          enabled: true
+          prefix: vsc
+        window_switcher:
+          enabled: true
+          prefix: win
+        windows_terminal:
+          enabled: true
+          prefix: wt
+        world_clock:
+          enabled: true
+          prefix: tz
+        web_search:
+          enabled: false
+        system_commands:
+          enabled: false
+        kill_process:
+          enabled: false
+        snippets:
+          enabled: false
+        color:
+          enabled: false
+      popup:
+        width: 720
+        height: 480
+        blur: true
+        round_corners: true
+        round_corners_type: normal
+        border_color: system
+        dark_mode: true
+      callbacks:
+        on_left: toggle_quick_launch
+      keybindings:
+        - keys: alt+space
+          action: toggle_quick_launch
+          screen: primary
+      home_page: true
+
+  taskbar:
+    type: yasb.taskbar.TaskbarWidget
+    options:
+      icon_size: 26
+      tooltip: true
+      monitor_exclusive: false
+      show_only_visible: false
+      strict_filtering: false  # Main windows need not have a minimize button.
+      animation:
+        enabled: true
+        duration: 160
+      preview:
+        enabled: true
+        width: 260
+        delay: 400
+        padding: 8
+        margin: 8
+        blur: true
+        peek: true
+      grouping:
+        enabled: true
+        show_count: true
+      callbacks:
+        on_left: toggle_window
+        on_middle: do_nothing
+        on_right: context_menu
+  systray:
+    type: yasb.systray.SystrayWidget
+    options:
+      class_name: systray
+      label_collapsed: 
+      label_expanded: 
+      label_position: right
+      pin_click_modifier: ctrl
+      show_unpinned: false
+      show_battery: false
+      show_volume: false
+      icon_size: 16
+      use_hook: true
+      show_in_popup: true
+      icons_per_row: 5
+      popup:
+        blur: true
+        round_corners: true
+        round_corners_type: normal
+        border_color: None
+        alignment: center
+        direction: up
+        offset_top: 6
+        offset_left: 0
+  language:
+    type: yasb.language.LanguageWidget
+    options:
+      label: '{lang[short_name]}'
+      label_alt: '{lang[short_name]}'
+      update_interval: 2
+      language_menu:
+        direction: up
+        alignment: right
+        layout_icon: 
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: toggle_label
+  wifi:
+    type: yasb.wifi.WifiWidget
+    options:
+      label: <span>{wifi_icon}</span>
+      label_alt: '{wifi_name}'
+      ethernet_label: <span>{wifi_icon}</span>
+      ethernet_label_alt: '{ip_addr}'
+      wifi_icons:
+        - 
+        - 
+        - 
+        - 
+        - 
+      ethernet_icon: 
+      hide_if_ethernet: false
+      update_interval: 3000
+      menu_config:
+        direction: up
+        alignment: right
+      callbacks:
+        on_left: toggle_menu
+        on_middle: toggle_label
+        on_right: exec cmd /c start "" ms-settings:network-status
+  bluetooth:
+    type: yasb.bluetooth.BluetoothWidget
+    options:
+      label: <span>{icon}</span>
+      label_alt: '{device_name}'
+      max_length: 24
+      menu_config:
+        direction: up
+        alignment: right
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: exec cmd /c start "" ms-settings:bluetooth
+  volume:
+    type: yasb.volume.VolumeWidget
+    options:
+      label: <span>{icon}</span>
+      label_alt: <span>{icon}</span>{level}
+      tooltip: true
+      icons:
+        muted: 
+        '10': 
+        '30': 
+        '60': 
+        '100': 
+      callbacks:
+        on_left: toggle_volume_menu
+        on_right: toggle_mute
+      audio_menu:
+        blur: true
+        round_corners: true
+        round_corners_type: normal
+        border_color: system
+        alignment: right
+        direction: up
+        show_apps: true
+        show_app_labels: false
+        show_app_icons: true
+        show_apps_expanded: false
+        app_icons:
+          toggle_down: 
+          toggle_up: 
+
+  battery:
+    type: yasb.battery.BatteryWidget
+    options:
+      label: <span>{icon}</span> {percent}%
+      label_alt: '{percent}% · {time_remaining}'
+      update_interval: 10000
+      time_remaining_natural: true
+      hide_unsupported: true
+      charging_options:
+        icon_format: '{charging_icon} {icon}'
+        blink_charging_icon: false
+      callbacks:
+        on_left: exec cmd /c start "" ms-settings:batterysaver
+        on_middle: do_nothing
+        on_right: toggle_label
+
+  control_center:
+    type: yasb.control_center.ControlCenterWidget
+    options:
+      label: <span></span>
+      tooltip: true
+      popup:
+        direction: up
+        alignment: right
+      sections:
+        system_controls:
+          show: true
+        quick_actions:
+          show: true
+          columns: 3
+        sliders:
+          show: true
+          brightness:
+            icon: 
+            show_slider: true
+            show_source_selector: true
+          volume:
+            icon: 
+            show_slider: true
+            show_source_selector: true
+          microphone:
+            icon: 
+            show_slider: true
+            show_source_selector: true
+        power:
+          show: true
+        media:
+          show: true
+      callbacks:
+        on_left: toggle_menu
+        on_middle: do_nothing
+        on_right: do_nothing
+  notifications:
+    type: yasb.notifications.NotificationsWidget
+    options:
+      label: <span></span>
+      label_alt: '{count} notifications'
+      hide_empty: false
+      tooltip: true
+      callbacks:
+        on_left: toggle_notification
+        on_right: do_nothing
+        on_middle: do_nothing
+  clock:
+    type: yasb.clock.ClockWidget
+    options:
+      label: '{<b>%H:%M:%S</b><br><font color="#aeb4bf" size="2">%Y-%m-%d</font>}<span>{alarm}</span>'
+      label_alt: '{<b>%H:%M:%S</b><br><font color="#aeb4bf" size="2">%Y-%m-%d</font>}<span>{alarm}</span>'
+      timezones: []
+      calendar:
+        blur: true
+        round_corners: true
+        alignment: right
+        direction: up
+        extended: false
+        show_years: true
+        show_holidays: false
+        show_week_numbers: true
+      callbacks:
+        on_left: 'exec wscript.exe "{install_root}\time-center\toggle.vbs"'
+        on_middle: toggle_calendar
+        on_right: context_menu
