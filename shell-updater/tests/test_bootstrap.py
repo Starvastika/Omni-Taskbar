@@ -14,7 +14,7 @@ class BootstrapTests(unittest.TestCase):
   archive=root/'fixture.zip';archive.write_bytes(http.archive);return archive,http.manifest
  def test_first_install_mode_defaults_and_delayed_startup(self):
   with tempfile.TemporaryDirectory() as tmp:
-   root=Path(tmp);archive,manifest=self.setup_fixture(root);life=Lifecycle();calls=[]
+   root=Path(tmp).resolve();archive,manifest=self.setup_fixture(root);life=Lifecycle();calls=[]
    def runner(args,**kw):calls.append(args);return types.SimpleNamespace(returncode=0,stdout='False')
    with patch.object(engine,'WindowsLifecycle',lambda _:life),patch.object(bootstrap.subprocess,'run',runner):
     bootstrap.install(root,archive,manifest,'manual')
@@ -24,7 +24,7 @@ class BootstrapTests(unittest.TestCase):
    self.assertIsNone(engine.read(root/'helpers/watchdog-settings.json')['LhmTask'])
  def test_first_install_health_failure_does_not_register_startup(self):
   with tempfile.TemporaryDirectory() as tmp:
-   root=Path(tmp);archive,manifest=self.setup_fixture(root);life=Lifecycle((False,));calls=[]
+   root=Path(tmp).resolve();archive,manifest=self.setup_fixture(root);life=Lifecycle((False,));calls=[]
    def runner(args,**kw):calls.append(args);return types.SimpleNamespace(returncode=0,stdout='False')
    with patch.object(engine,'WindowsLifecycle',lambda _:life),patch.object(bootstrap.subprocess,'run',runner),self.assertRaises(RuntimeError):
     bootstrap.install(root,archive,manifest,'check')
