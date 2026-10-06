@@ -75,7 +75,9 @@ class Network:
 
 class Updater:
  def __init__(self,root,network=None,lifecycle=None):
-  self.root=Path(root).resolve();self.data=self.root/'shell-updater/data';self.data.mkdir(parents=True,exist_ok=True)
+  self.root=Path(root).resolve();self.data=self.root/'shell-updater/data'
+  if self.data.is_symlink() or self.data.is_junction() or not self.data.resolve().is_relative_to(self.root):raise ValueError('Updater data path must remain inside installation')
+  self.data.mkdir(parents=True,exist_ok=True)
   self.network=network or Network();self.lifecycle=lifecycle or WindowsLifecycle(self.root)
   self.version=read(self.root/'version.json');semver(self.version['version'])
   self.state=read(self.data/'state.json',{'mode':None,'status':'Choose an update mode','attention':False,'last_checked':0})
@@ -220,7 +222,7 @@ class Updater:
   self.save();self.log('failure '+type(exc).__name__)
  def destination(self,name):
   target=self.root/name
-  if target.is_symlink() or any(p.is_symlink() for p in target.parents if p!=self.root.parent):raise ValueError('Symlink/reparse destination')
+  if target.is_symlink() or target.is_junction() or any(p.is_symlink() or p.is_junction() for p in target.parents if p!=self.root.parent):raise ValueError('Symlink/reparse destination')
   if not target.resolve().is_relative_to(self.root):raise ValueError('Destination outside installation')
   return target
  def replace(self,source,target):
